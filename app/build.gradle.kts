@@ -191,3 +191,23 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     implementation(libs.androidx.compose.ui.tooling)
 }
+
+// ── CI helper task ────────────────────────────────────────────────────────────
+//
+// Prints the app's version name to stdout so the GitHub Actions workflow can
+// capture it without parsing Kotlin source files.
+//
+// Usage:  ./gradlew printVersionName
+// Output: 2.0.0-alpha.5   (whatever currentVersion.name resolves to)
+//
+// The task is intentionally registered on the :app project (this file) so it
+// has direct access to `baseVersionName` which is already resolved above.
+tasks.register("printVersionName") {
+    group = "versioning"
+    description = "Prints the current versionName to stdout for CI consumption."
+    // We declare no inputs/outputs so Gradle never considers it up-to-date and
+    // skips it — we always want a fresh print.
+    doLast {
+        println(baseVersionName)
+    }
+}
