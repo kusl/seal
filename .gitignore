@@ -17,3 +17,6 @@
 local.properties
 /keystore.properties
 .kotlin
+docs/llm/secrets.md
+android.keystore
+android.keystore.base64
