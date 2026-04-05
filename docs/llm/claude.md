@@ -259,3 +259,27 @@ Every subsequent push will automatically get a new unique version with timestamp
 16
 13
 
+everything went great. 
+the build succeeded. 
+the apk generated. 
+I added my github to obtainium 
+and installed the app 
+I even downloaded five videos. 
+now here is the part where we need to investigate and fix some problems. 
+after I have downloaded about five videos, 
+the app feels non responsive. 
+I see the download queue on my screen on my phone. 
+I see it says 5 videos but I can't scroll or anything 
+now I will try to "throw" the app 
+basically swipe up and then "fling" the app away 
+this "fixes" the problem 
+and sure enough, it did 
+but I feel like this is a defect 
+why does the app require me to fling it away every so often? 
+how can we fix it? 
+please use the dump.txt for the full context 
+and please give me full files for all the files that need to change. 
+remember, no regressions 
+we can't afford to cause any regressions 
+I don't think we have any tests... 
+
