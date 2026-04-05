@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Sun Apr  5 12:05:45 PM EDT 2026
+Generated: Sun Apr  5 12:36:10 PM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -913,7 +913,7 @@ jobs:
 
 ================================================================================
 FILE: .github/workflows/android_ci.yml
-SIZE: .58 KB
+SIZE: .63 KB
 ================================================================================
 
 name: Android CI
@@ -922,16 +922,18 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: set up JDK 21
-        uses: actions/setup-java@v3
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -940,9 +942,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v4
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
       - name: Build with Gradle
         run: ./gradlew buildGenericRelease
 
@@ -970,13 +974,17 @@ jobs:
 
 ================================================================================
 FILE: .github/workflows/release.yml
-SIZE: 7.42 KB
+SIZE: 7.55 KB
 ================================================================================
 
 # .github/workflows/release.yml
 #
 # Triggers on every push to `main` and produces a signed, full (non-pre-release)
 # GitHub Release from the `generic` product flavor.
+#
+# Version auto-bumps on every build using a timestamp-based scheme:
+#   Tag format:  v2.0.0-alpha.YYYYMMDD.HHMM
+#   This ensures every push gets a unique, monotonically increasing version.
 #
 # Required GitHub Secrets (Settings → Secrets and variables → Actions):
 #   ANDROID_KEYSTORE_BASE64   – base64-encoded android.keystore file
@@ -989,8 +997,12 @@ on:
     branches:
       - main
 
+# Opt into Node.js 24 to silence the deprecation warnings.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # Only allow one release workflow to run at a time; cancel any in-progress run
-# if a new push arrives before it finishes. This prevents duplicate releases.
+# if a new push arrives before it finishes.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
@@ -1000,8 +1012,6 @@ jobs:
     name: Build & Publish Release
     runs-on: ubuntu-latest
 
-    # Give the job permission to create releases and upload assets.
-    # "contents: write" is required by softprops/action-gh-release.
     permissions:
       contents: write
 
@@ -1010,8 +1020,6 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          # Fetch the full history so the tag we create doesn't conflict with
-          # any shallow-clone limitation.
           fetch-depth: 0
 
       # ── 2. Java / Gradle toolchain ─────────────────────────────────────────
@@ -1020,7 +1028,6 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          # Caches ~/.gradle/caches and ~/.gradle/wrapper between runs.
           cache: 'gradle'
 
       # ── 3. Android SDK ─────────────────────────────────────────────────────
@@ -1029,105 +1036,119 @@ jobs:
 
       # ── 4. Gradle wrapper ──────────────────────────────────────────────────
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      # ── 5. Reconstruct the keystore from the base64 secret ─────────────────
+      # ── 5. Generate auto-bumping version ───────────────────────────────────
       #
-      # We write the keystore to a path that is outside the repo tree so it is
-      # never accidentally committed. RUNNER_TEMP is a per-job temp directory
-      # that GitHub Actions provides; it is automatically cleaned up afterward.
+      # We read the base version from buildSrc/Version.kt (e.g. "2.0.0-alpha")
+      # and append a timestamp suffix so every push gets a unique version.
+      #
+      # Format: <base>.<YYYYMMDD>.<HHMM>
+      # Example: 2.0.0-alpha.20260405.1614
+      #
+      # The versionCode is derived from the Unix timestamp to guarantee it
+      # always increases (Android requires versionCode to be monotonically
+      # increasing for updates).
+      - name: Generate version
+        id: version
+        run: |
+          # Get base version from Gradle (e.g. "2.0.0-alpha.5")
+          BASE_VERSION=$(./gradlew -q printVersionName --no-configuration-cache 2>/dev/null || echo "")
+
+          # Strip trailing build number if present (e.g. "2.0.0-alpha.5" -> "2.0.0-alpha")
+          # This gives us the stable prefix to append our timestamp to.
+          BASE_PREFIX=$(echo "$BASE_VERSION" | sed -E 's/\.(alpha|beta|rc)\.([0-9]+)$/.\1/')
+
+          # If we couldn't parse it, fall back to commit-based version
+          if [ -z "$BASE_PREFIX" ]; then
+            BASE_PREFIX="0.0.0-dev"
+          fi
+
+          # Timestamp components (UTC)
+          DATE_PART=$(date -u +%Y%m%d)
+          TIME_PART=$(date -u +%H%M)
+
+          # Final version name: e.g. "2.0.0-alpha.20260405.1614"
+          VERSION_NAME="${BASE_PREFIX}.${DATE_PART}.${TIME_PART}"
+
+          # versionCode: Unix timestamp divided by 60 (fits in int32 until 2038+)
+          # This guarantees monotonic increase and stays well within Android's
+          # versionCode limit of 2,100,000,000.
+          EPOCH=$(date -u +%s)
+          VERSION_CODE=$((EPOCH / 60))
+
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Generated version: $VERSION_NAME (code: $VERSION_CODE)"
+
+      # ── 6. Reconstruct the keystore ────────────────────────────────────────
       - name: Decode keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/android.keystore"
 
-      # ── 6. Write keystore.properties ───────────────────────────────────────
+      # ── 7. Write keystore.properties ───────────────────────────────────────
       #
-      # app/build.gradle.kts already contains logic to read this file:
-      #
-      #   val keystorePropertiesFile = rootProject.file("keystore.properties")
-      #   if (keystorePropertiesFile.exists()) { ... }
-      #
-      # By writing it here at build time (and NOT committing it to git), we
-      # keep credentials out of version control entirely.
-      #
-      # Key names must match exactly what build.gradle.kts reads:
-      #   keystoreProperties["keyAlias"]        → alias used in keytool -alias
-      #   keystoreProperties["keyPassword"]     → -keypass value
-      #   keystoreProperties["storeFile"]       → absolute path to .keystore
-      #   keystoreProperties["storePassword"]   → -storepass value
+      # CRITICAL: No leading whitespace! Properties.load() will include spaces
+      # in key names if the lines are indented, causing silent signing failure.
       - name: Write keystore.properties
         env:
           ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
         run: |
-          cat > keystore.properties <<EOF
+          cat > keystore.properties <<PROPS
           keyAlias=myalias
           keyPassword=${ANDROID_SIGNING_PASSWORD}
           storeFile=$RUNNER_TEMP/android.keystore
           storePassword=${ANDROID_SIGNING_PASSWORD}
-          EOF
+          PROPS
+          # Strip any leading whitespace from each line (heredoc indentation safety)
+          sed -i 's/^[[:space:]]*//' keystore.properties
+          echo "--- keystore.properties (keys only) ---"
+          cut -d'=' -f1 keystore.properties
 
-      # ── 7. Read the version name from buildSrc ────────────────────────────
+      # ── 8. Patch version for this build ────────────────────────────────────
       #
-      # buildSrc/src/main/kotlin/Version.kt defines `currentVersion`.
-      # Rather than parsing Kotlin, we ask Gradle itself for the value by
-      # running a one-off task that prints it. This is the single source of
-      # truth for the version and avoids duplication or drift.
-      #
-      # The `generic` flavor + `release` build type is the combination we care
-      # about; its versionName comes straight from `baseVersionName` in
-      # build.gradle.kts which equals currentVersion.name.
-      - name: Read version name from Gradle
-        id: version
-        run: |
-          VERSION=$(./gradlew -q printVersionName --no-configuration-cache 2>/dev/null || \
-                    ./gradlew -q :app:printVersionName 2>/dev/null || \
-                    grep -oP "Version\.\w+\([^)]+\)" buildSrc/src/main/kotlin/Version.kt | tail -1)
-          # Fallback: derive it from the git SHA if Gradle task is unavailable
-          if [ -z "$VERSION" ] || echo "$VERSION" | grep -q "Version\."; then
-            VERSION="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
-          fi
-          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Resolved version: $VERSION"
-
-      # ── 8. Build the signed release APK ───────────────────────────────────
-      #
-      # `assembleGenericRelease` builds the `generic` product flavor in release
-      # mode. Because keystore.properties now exists, build.gradle.kts will
-      # automatically apply the `githubPublish` signingConfig, so the APK that
-      # comes out of Gradle is already signed and zipaligned — no separate
-      # signing step needed.
-      #
-      # The output file naming in build.gradle.kts is:
-      #   Seal-<versionName>-<variantName>.apk
-      # With splits enabled (default) you get one APK per ABI plus a universal.
+      # We override the version at Gradle level using project properties.
+      # This avoids modifying Version.kt (which would dirty the working tree).
       - name: Build signed release APK
-        run: ./gradlew assembleGenericRelease
+        run: |
+          ./gradlew assembleGenericRelease \
+            -PversionNameOverride="${{ steps.version.outputs.name }}" \
+            -PversionCodeOverride="${{ steps.version.outputs.code }}"
 
-      # ── 9. Collect the APKs ────────────────────────────────────────────────
+      # ── 9. Debug: show what was produced ───────────────────────────────────
       - name: List produced APKs
-        run: find app/build/outputs/apk -name "*.apk" | sort
+        run: |
+          echo "=== All APK files ==="
+          find app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
+          echo ""
+          echo "=== Verify signing ==="
+          for apk in $(find app/build/outputs/apk -name "*.apk"); do
+            echo "--- $apk ---"
+            $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner verify --print-certs "$apk" 2>&1 || echo "NOT SIGNED"
+          done
 
-      # ── 10. Create GitHub Release ─────────────────────────────────────────
+      # ── 10. Create GitHub Release ──────────────────────────────────────────
       #
-      # softprops/action-gh-release creates a tag + release on GitHub.
-      # `prerelease: false` is explicit — this is a full release.
-      # The tag is "v<versionName>" so it matches the convention used upstream.
+      # The glob pattern must match the actual Gradle output directory structure:
+      #   app/build/outputs/apk/<flavor>/<buildType>/*.apk
+      # Which is: app/build/outputs/apk/generic/release/*.apk
       #
-      # We upload every APK produced; the glob `**/*.apk` covers all ABI
-      # splits as well as the universal APK.
+      # NOT "genericRelease" — Gradle uses separate directories for flavor and
+      # build type.
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.name }}
           name: Seal ${{ steps.version.outputs.name }}
           prerelease: false
-          generate_release_notes: true   # auto-generates notes from commit messages
-          files: app/build/outputs/apk/genericRelease/*.apk
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/generic/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -3170,7 +3191,7 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: app/build.gradle.kts
-SIZE: 6.52 KB
+SIZE: 7.02 KB
 ================================================================================
 
 @file:Suppress("UnstableApiUsage")
@@ -3197,8 +3218,22 @@ val abiFilterList = (properties["ABI_FILTERS"] as String).split(';')
 
 val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86" to 3, "x86_64" to 4)
 
-val baseVersionName = currentVersion.name
-val currentVersionCode = currentVersion.code.toInt()
+// ── Version resolution ────────────────────────────────────────────────────────
+//
+// CI passes -PversionNameOverride=... and -PversionCodeOverride=... to inject
+// a timestamp-based auto-bumping version. When building locally (or if the
+// properties aren't set), we fall back to the values from buildSrc/Version.kt.
+val baseVersionName: String = if (project.hasProperty("versionNameOverride")) {
+    project.property("versionNameOverride") as String
+} else {
+    currentVersion.name
+}
+
+val currentVersionCode: Int = if (project.hasProperty("versionCodeOverride")) {
+    (project.property("versionCodeOverride") as String).toInt()
+} else {
+    currentVersion.code.toInt()
+}
 
 android {
     compileSdk = 35
@@ -3222,8 +3257,7 @@ android {
         applicationId = "com.junkfood.seal"
         minSdk = 24
         targetSdk = 35
-        versionCode = 200_000_150
-        check(versionCode == currentVersionCode)
+        versionCode = currentVersionCode
 
         versionName = baseVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -3375,15 +3409,13 @@ dependencies {
 // Usage:  ./gradlew printVersionName
 // Output: 2.0.0-alpha.5   (whatever currentVersion.name resolves to)
 //
-// The task is intentionally registered on the :app project (this file) so it
-// has direct access to `baseVersionName` which is already resolved above.
+// NOTE: This always prints the Version.kt value, NOT the CI override.
+// The CI uses this as the "base" and then appends a timestamp.
 tasks.register("printVersionName") {
     group = "versioning"
     description = "Prints the current versionName to stdout for CI consumption."
-    // We declare no inputs/outputs so Gradle never considers it up-to-date and
-    // skips it — we always want a fresh print.
     doLast {
-        println(baseVersionName)
+        println(currentVersion.name)
     }
 }
 
