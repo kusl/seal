@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Sun Apr  5 11:41:18 AM EDT 2026
+Generated: Sun Apr  5 11:47:37 AM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -439,6 +439,7 @@ DIRECTORY STRUCTURE:
 ├── docs
 │   └── llm
 │       ├── KEYSTORE.md
+│       ├── dump.txt
 │       └── output.txt
 ├── export.sh
 ├── fastlane
@@ -1002,7 +1003,7 @@ jobs:
 
 ================================================================================
 FILE: .gitignore
-SIZE: .29 KB
+SIZE: .35 KB
 ================================================================================
 
 *.iml
@@ -1024,6 +1025,10 @@ SIZE: .29 KB
 local.properties
 /keystore.properties
 .kotlin
+docs/llm/secrets.md
+android.keystore
+android.keystore.base64
+
 
 ================================================================================
 FILE: .idea/AndroidProjectSystem.xml
