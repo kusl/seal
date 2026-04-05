@@ -22,8 +22,22 @@ val abiFilterList = (properties["ABI_FILTERS"] as String).split(';')
 
 val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86" to 3, "x86_64" to 4)
 
-val baseVersionName = currentVersion.name
-val currentVersionCode = currentVersion.code.toInt()
+// ── Version resolution ────────────────────────────────────────────────────────
+//
+// CI passes -PversionNameOverride=... and -PversionCodeOverride=... to inject
+// a timestamp-based auto-bumping version. When building locally (or if the
+// properties aren't set), we fall back to the values from buildSrc/Version.kt.
+val baseVersionName: String = if (project.hasProperty("versionNameOverride")) {
+    project.property("versionNameOverride") as String
+} else {
+    currentVersion.name
+}
+
+val currentVersionCode: Int = if (project.hasProperty("versionCodeOverride")) {
+    (project.property("versionCodeOverride") as String).toInt()
+} else {
+    currentVersion.code.toInt()
+}
 
 android {
     compileSdk = 35
@@ -47,8 +61,7 @@ android {
         applicationId = "com.junkfood.seal"
         minSdk = 24
         targetSdk = 35
-        versionCode = 200_000_150
-        check(versionCode == currentVersionCode)
+        versionCode = currentVersionCode
 
         versionName = baseVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -200,14 +213,12 @@ dependencies {
 // Usage:  ./gradlew printVersionName
 // Output: 2.0.0-alpha.5   (whatever currentVersion.name resolves to)
 //
-// The task is intentionally registered on the :app project (this file) so it
-// has direct access to `baseVersionName` which is already resolved above.
+// NOTE: This always prints the Version.kt value, NOT the CI override.
+// The CI uses this as the "base" and then appends a timestamp.
 tasks.register("printVersionName") {
     group = "versioning"
     description = "Prints the current versionName to stdout for CI consumption."
-    // We declare no inputs/outputs so Gradle never considers it up-to-date and
-    // skips it — we always want a fresh print.
     doLast {
-        println(baseVersionName)
+        println(currentVersion.name)
     }
 }
