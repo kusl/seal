@@ -20,3 +20,8 @@ local.properties
 docs/llm/secrets.md
 android.keystore
 android.keystore.base64
+# Signing secrets — never commit these
+keystore.properties
+*.keystore
+*.jks
+android.keystore.base64
