@@ -25,6 +25,7 @@ import com.junkfood.seal.util.NotificationUtil
 import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.VideoInfo
 import com.yausername.youtubedl_android.YoutubeDL
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -32,15 +33,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 
 private const val TAG = "DownloaderV2"
 
 private const val MAX_CONCURRENCY = 3
+
+/**
+ * Minimum interval (in milliseconds) between progress updates to the SnapshotStateMap for a single
+ * task. This prevents flooding Compose with recompositions on every yt-dlp progress callback.
+ * Notifications are still updated immediately since they don't affect the UI thread.
+ */
+private const val PROGRESS_THROTTLE_MS = 250L
+
+/**
+ * Debounce interval (in milliseconds) for writing the task backup to persistent storage. Progress
+ * updates fire very frequently; we don't need to serialize to MMKV on every tick.
+ */
+private const val BACKUP_DEBOUNCE_MS = 2000L
 
 interface DownloaderV2 {
     fun getTaskStateMap(): SnapshotStateMap<Task, Task.State>
@@ -98,28 +112,67 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private val taskStateMap = mutableStateMapOf<Task, Task.State>()
     private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
 
+    /**
+     * Tracks the last time each task's progress was written to [taskStateMap]. Used by
+     * [updateProgressThrottled] to avoid flooding Compose with recompositions. Key = Task.id, Value
+     * = System.currentTimeMillis() of last write.
+     */
+    private val lastProgressWriteTime = ConcurrentHashMap<String, Long>()
+
     init {
+        // ── Work scheduler ──────────────────────────────────────────────────
+        // We map each snapshot to only the *structural* state of each task (i.e. which
+        // DownloadState subclass it is, ignoring progress/progressText within Running).
+        // This way, doYourWork() is only called when a task transitions between states
+        // (Idle → FetchingInfo → ReadyWithInfo → Running → Completed/Error/Canceled),
+        // NOT on every progress tick within Running.
         scope.launch(Dispatchers.Default) {
             snapshotFlow
-                .onEach { doYourWork() }
-                .map { it.countRunning() }
+                .map { map -> map.mapValues { (_, state) -> state.downloadState.toStructuralKey() } }
                 .distinctUntilChanged()
-                .collect { if (it > 0) App.startService() else App.stopService() }
+                .collect { structuralStateMap ->
+                    doYourWork()
+                    val runningCount =
+                        structuralStateMap.count { (_, key) ->
+                            key == "Running" || key == "FetchingInfo"
+                        }
+                    if (runningCount > 0) App.startService() else App.stopService()
+                }
         }
 
+        // ── Backup persistence ──────────────────────────────────────────────
+        // Debounce writes so we don't serialize to MMKV on every progress tick.
         scope.launch(Dispatchers.IO) {
-            // don't write before we read
+            // Don't write before we read
             enqueueFromBackup()
 
             snapshotFlow
                 .map { it.filter { it.value.downloadState !is Completed } }
                 .distinctUntilChanged()
+                .debounce(BACKUP_DEBOUNCE_MS)
                 .collect {
                     it.forEach { Log.d(TAG, it.value.viewState.title) }
                     PreferenceUtil.encodeTaskListBackup(it)
                 }
         }
     }
+
+    /**
+     * Returns a string key that represents the *type* of [DownloadState] without considering
+     * progress values. Two [Running] states with different progress will return the same key. This
+     * is used with [distinctUntilChanged] so that progress-only changes don't trigger
+     * [doYourWork()].
+     */
+    private fun DownloadState.toStructuralKey(): String =
+        when (this) {
+            is Canceled -> "Canceled"
+            is Completed -> "Completed"
+            is Error -> "Error"
+            is FetchingInfo -> "FetchingInfo"
+            Idle -> "Idle"
+            ReadyWithInfo -> "ReadyWithInfo"
+            is Running -> "Running"
+        }
 
     private fun enqueueFromBackup() {
         val taskList =
@@ -174,6 +227,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     override fun remove(task: Task): Boolean {
         if (taskStateMap.contains(task)) {
             taskStateMap.remove(task)
+            lastProgressWriteTime.remove(task.id)
             return true
         }
         return false
@@ -214,6 +268,30 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
 
     private val Task.notificationId: Int
         get() = id.hashCode()
+
+    /**
+     * Updates the progress of a [Running] task in the [taskStateMap], but only if at least
+     * [PROGRESS_THROTTLE_MS] milliseconds have elapsed since the last write for this task. This
+     * prevents flooding Compose with recompositions on every yt-dlp progress callback.
+     *
+     * Notifications are updated regardless of throttling since they don't cause UI thread pressure.
+     *
+     * @return true if the SnapshotStateMap was actually updated, false if throttled
+     */
+    private fun Task.updateProgressThrottled(progress: Float, progressText: String): Boolean {
+        val now = System.currentTimeMillis()
+        val lastWrite = lastProgressWriteTime[id] ?: 0L
+        // Always write if enough time has passed, or if progress indicates completion (>= 1.0)
+        if (now - lastWrite >= PROGRESS_THROTTLE_MS || progress >= 1f) {
+            lastProgressWriteTime[id] = now
+            val currentState = downloadState
+            if (currentState is Running) {
+                downloadState = currentState.copy(progress = progress, progressText = progressText)
+            }
+            return true
+        }
+        return false
+    }
 
     /** Processes pending tasks, prioritizing downloads. */
     private fun doYourWork() {
@@ -292,10 +370,18 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         downloadPreferences = preferences,
                         progressCallback = { progressPercentage, _, text ->
                             val progress = progressPercentage / 100f
-                            when (val preState = downloadState) {
+                            when (downloadState) {
                                 is Running -> {
-                                    downloadState =
-                                        preState.copy(progress = progress, progressText = text)
+                                    // ── THROTTLED WRITE ─────────────────────
+                                    // Only update the SnapshotStateMap (and
+                                    // trigger recomposition) at most once per
+                                    // PROGRESS_THROTTLE_MS. Notifications are
+                                    // always updated since they're cheap.
+                                    updateProgressThrottled(progress, text)
+
+                                    // Notifications don't touch the main thread,
+                                    // so always update them for a responsive
+                                    // notification shade.
                                     NotificationUtil.notifyProgress(
                                         notificationId = notificationId,
                                         progress = progressPercentage.toInt(),
@@ -309,6 +395,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         },
                     )
                     .onSuccess { pathList ->
+                        // Clean up throttle tracking for this task
+                        lastProgressWriteTime.remove(id)
+
                         downloadState = Completed(pathList.firstOrNull())
 
                         val text =
@@ -334,6 +423,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         }
                     }
                     .onFailure { throwable ->
+                        // Clean up throttle tracking for this task
+                        lastProgressWriteTime.remove(id)
+
                         if (throwable is YoutubeDL.CanceledException) {
                             return@onFailure
                         }
@@ -360,6 +452,8 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                     downloadState =
                         DownloadState.Canceled(action = preState.action, progress = progress)
                 }
+                // Clean up throttle tracking
+                lastProgressWriteTime.remove(id)
                 return res
             }
             Idle -> {
@@ -407,10 +501,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         _,
                         text ->
                         val progress = progressPercentage / 100f
-                        when (val preState = downloadState) {
+                        when (downloadState) {
                             is Running -> {
-                                downloadState =
-                                    preState.copy(progress = progress, progressText = text)
+                                // Throttle progress updates for custom commands too
+                                updateProgressThrottled(progress, text)
+
                                 NotificationUtil.makeNotificationForCustomCommand(
                                     notificationId = notificationId,
                                     taskId = id,
@@ -436,6 +531,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         )
                     }
                     .onSuccess {
+                        // Clean up throttle tracking
+                        lastProgressWriteTime.remove(id)
+
                         downloadState = Completed(null)
 
                         val text = appContext.getString(R.string.status_completed)
