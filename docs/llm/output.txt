@@ -1,0 +1,184 @@
+kushal@fedora:~/src/dotnet/observermagazine.github.io$ cd ~/Videos/dl/; time yt-dlp https://www.instagram.com/reel/DWtsjTyDXjI/
+[Instagram] Extracting URL: https://www.instagram.com/reel/DWtsjTyDXjI/
+[Instagram] DWtsjTyDXjI: Setting up session
+[Instagram] DWtsjTyDXjI: Downloading JSON metadata
+ERROR: [Instagram] DWtsjTyDXjI: Instagram sent an empty media response. Check if this post is accessible in your browser without being logged-in. If it is not, then use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Otherwise, if the post is accessible in browser without being logged-in, please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U
+
+real	0m1.151s
+user	0m0.585s
+sys	0m0.060s
+kushal@fedora:~/Videos/dl$ mkdir -p ~/src/kotlin
+kushal@fedora:~/Videos/dl$ cd ~/src/kotlin; time git clone https://github.com/JunkFood02/Seal
+Cloning into 'Seal'...
+remote: Enumerating objects: 23949, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 23949 (delta 0), reused 0 (delta 0), pack-reused 23946 (from 1)
+Receiving objects: 100% (23949/23949), 11.28 MiB | 6.00 MiB/s, done.
+Resolving deltas: 100% (13038/13038), done.
+
+real	0m2.170s
+user	0m0.404s
+sys	0m0.174s
+kushal@fedora:~/src/kotlin$ cd ~/src/kotlin/Seal/; time git remote add mine git@github.com:kusl/seal.git; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine;
+
+real	0m0.005s
+user	0m0.002s
+sys	0m0.003s
+mine
+origin
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.002s
+* remote origin
+  Fetch URL: https://github.com/JunkFood02/Seal
+  Push  URL: https://github.com/JunkFood02/Seal
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local branch configured for 'git pull':
+    main merges with remote main
+  Local ref configured for 'git push':
+    main pushes to main (up to date)
+
+real	0m0.138s
+user	0m0.011s
+sys	0m0.008s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: (unknown)
+
+real	0m0.584s
+user	0m0.008s
+sys	0m0.008s
+
+real	0m0.111s
+user	0m0.016s
+sys	0m0.009s
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+
+real	0m0.030s
+user	0m0.020s
+sys	0m0.010s
+Enumerating objects: 23387, done.
+Counting objects: 100% (23387/23387), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (6139/6139), done.
+Writing objects: 100% (23387/23387), 11.20 MiB | 13.09 MiB/s, done.
+Total 23387 (delta 12735), reused 23387 (delta 12735), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (12735/12735), done.
+To github.com:kusl/seal.git
+ * [new branch]        main -> main
+
+real	0m4.974s
+user	0m0.098s
+sys	0m0.066s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branch:
+    main tracked
+  Local ref configured for 'git push':
+    main pushes to main (up to date)
+
+real	0m0.585s
+user	0m0.008s
+sys	0m0.009s
+kushal@fedora:~/src/kotlin/Seal$ git switch v1.x
+branch 'v1.x' set up to track 'origin/v1.x'.
+Switched to a new branch 'v1.x'
+kushal@fedora:~/src/kotlin/Seal$ git switch main
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote add mine git@github.com:kusl/seal.git; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine;
+error: remote mine already exists.
+
+real	0m0.004s
+user	0m0.001s
+sys	0m0.003s
+mine
+origin
+
+real	0m0.001s
+user	0m0.001s
+sys	0m0.000s
+* remote origin
+  Fetch URL: https://github.com/JunkFood02/Seal
+  Push  URL: https://github.com/JunkFood02/Seal
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local branches configured for 'git pull':
+    main merges with remote main
+    v1.x merges with remote v1.x
+  Local refs configured for 'git push':
+    main pushes to main (up to date)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.174s
+user	0m0.013s
+sys	0m0.005s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branch:
+    main tracked
+  Local ref configured for 'git push':
+    main pushes to main (up to date)
+
+real	0m0.546s
+user	0m0.008s
+sys	0m0.010s
+
+real	0m0.118s
+user	0m0.011s
+sys	0m0.015s
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+
+real	0m0.023s
+user	0m0.017s
+sys	0m0.007s
+Enumerating objects: 344, done.
+Counting objects: 100% (344/344), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (111/111), done.
+Writing objects: 100% (258/258), 199.21 KiB | 33.20 MiB/s, done.
+Total 258 (delta 126), reused 197 (delta 77), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (126/126), completed with 44 local objects.
+remote: 
+remote: Create a pull request for 'v1.x' on GitHub by visiting:
+remote:      https://github.com/kusl/seal/pull/new/v1.x
+remote: 
+To github.com:kusl/seal.git
+ * [new branch]        v1.x -> v1.x
+
+real	0m0.861s
+user	0m0.044s
+sys	0m0.016s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local refs configured for 'git push':
+    main pushes to main (up to date)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.498s
+user	0m0.008s
+sys	0m0.009s
+kushal@fedora:~/src/kotlin/Seal$ 
