@@ -1,0 +1,157 @@
+# .github/workflows/release.yml
+#
+# Triggers on every push to `main` and produces a signed, full (non-pre-release)
+# GitHub Release from the `generic` product flavor.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   – base64-encoded android.keystore file
+#   ANDROID_SIGNING_PASSWORD  – password used for both storePassword and keyPassword
+
+name: Release Build
+
+on:
+  push:
+    branches:
+      - main
+
+# Only allow one release workflow to run at a time; cancel any in-progress run
+# if a new push arrives before it finishes. This prevents duplicate releases.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    # Give the job permission to create releases and upload assets.
+    # "contents: write" is required by softprops/action-gh-release.
+    permissions:
+      contents: write
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          # Fetch the full history so the tag we create doesn't conflict with
+          # any shallow-clone limitation.
+          fetch-depth: 0
+
+      # ── 2. Java / Gradle toolchain ─────────────────────────────────────────
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          # Caches ~/.gradle/caches and ~/.gradle/wrapper between runs.
+          cache: 'gradle'
+
+      # ── 3. Android SDK ─────────────────────────────────────────────────────
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── 4. Gradle wrapper ──────────────────────────────────────────────────
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      # ── 5. Reconstruct the keystore from the base64 secret ─────────────────
+      #
+      # We write the keystore to a path that is outside the repo tree so it is
+      # never accidentally committed. RUNNER_TEMP is a per-job temp directory
+      # that GitHub Actions provides; it is automatically cleaned up afterward.
+      - name: Decode keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/android.keystore"
+
+      # ── 6. Write keystore.properties ───────────────────────────────────────
+      #
+      # app/build.gradle.kts already contains logic to read this file:
+      #
+      #   val keystorePropertiesFile = rootProject.file("keystore.properties")
+      #   if (keystorePropertiesFile.exists()) { ... }
+      #
+      # By writing it here at build time (and NOT committing it to git), we
+      # keep credentials out of version control entirely.
+      #
+      # Key names must match exactly what build.gradle.kts reads:
+      #   keystoreProperties["keyAlias"]        → alias used in keytool -alias
+      #   keystoreProperties["keyPassword"]     → -keypass value
+      #   keystoreProperties["storeFile"]       → absolute path to .keystore
+      #   keystoreProperties["storePassword"]   → -storepass value
+      - name: Write keystore.properties
+        env:
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          cat > keystore.properties <<EOF
+          keyAlias=myalias
+          keyPassword=${ANDROID_SIGNING_PASSWORD}
+          storeFile=$RUNNER_TEMP/android.keystore
+          storePassword=${ANDROID_SIGNING_PASSWORD}
+          EOF
+
+      # ── 7. Read the version name from buildSrc ────────────────────────────
+      #
+      # buildSrc/src/main/kotlin/Version.kt defines `currentVersion`.
+      # Rather than parsing Kotlin, we ask Gradle itself for the value by
+      # running a one-off task that prints it. This is the single source of
+      # truth for the version and avoids duplication or drift.
+      #
+      # The `generic` flavor + `release` build type is the combination we care
+      # about; its versionName comes straight from `baseVersionName` in
+      # build.gradle.kts which equals currentVersion.name.
+      - name: Read version name from Gradle
+        id: version
+        run: |
+          VERSION=$(./gradlew -q printVersionName --no-configuration-cache 2>/dev/null || \
+                    ./gradlew -q :app:printVersionName 2>/dev/null || \
+                    grep -oP "Version\.\w+\([^)]+\)" buildSrc/src/main/kotlin/Version.kt | tail -1)
+          # Fallback: derive it from the git SHA if Gradle task is unavailable
+          if [ -z "$VERSION" ] || echo "$VERSION" | grep -q "Version\."; then
+            VERSION="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
+          fi
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $VERSION"
+
+      # ── 8. Build the signed release APK ───────────────────────────────────
+      #
+      # `assembleGenericRelease` builds the `generic` product flavor in release
+      # mode. Because keystore.properties now exists, build.gradle.kts will
+      # automatically apply the `githubPublish` signingConfig, so the APK that
+      # comes out of Gradle is already signed and zipaligned — no separate
+      # signing step needed.
+      #
+      # The output file naming in build.gradle.kts is:
+      #   Seal-<versionName>-<variantName>.apk
+      # With splits enabled (default) you get one APK per ABI plus a universal.
+      - name: Build signed release APK
+        run: ./gradlew assembleGenericRelease
+
+      # ── 9. Collect the APKs ────────────────────────────────────────────────
+      - name: List produced APKs
+        run: find app/build/outputs/apk -name "*.apk" | sort
+
+      # ── 10. Create GitHub Release ─────────────────────────────────────────
+      #
+      # softprops/action-gh-release creates a tag + release on GitHub.
+      # `prerelease: false` is explicit — this is a full release.
+      # The tag is "v<versionName>" so it matches the convention used upstream.
+      #
+      # We upload every APK produced; the glob `**/*.apk` covers all ABI
+      # splits as well as the universal APK.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.name }}
+          name: Seal ${{ steps.version.outputs.name }}
+          prerelease: false
+          generate_release_notes: true   # auto-generates notes from commit messages
+          files: app/build/outputs/apk/genericRelease/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
