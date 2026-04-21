@@ -501,4 +501,507 @@ To github.com:kusl/seal.git
 real	0m1.113s
 user	0m0.025s
 sys	0m0.016s
-kushal@fedora:~/src/kotlin/Seal$ 
+kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
+mine
+origin
+
+real	0m0.002s
+user	0m0.001s
+sys	0m0.001s
+* remote origin
+  Fetch URL: https://github.com/JunkFood02/Seal
+  Push  URL: https://github.com/JunkFood02/Seal
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local branches configured for 'git pull':
+    main merges with remote main
+    v1.x merges with remote v1.x
+  Local refs configured for 'git push':
+    main pushes to main (fast-forwardable)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.422s
+user	0m0.011s
+sys	0m0.010s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local refs configured for 'git push':
+    main pushes to main (up to date)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.656s
+user	0m0.008s
+sys	0m0.006s
+
+real	0m0.276s
+user	0m0.014s
+sys	0m0.011s
+On branch main
+Your branch is ahead of 'origin/main' by 12 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   docs/llm/output.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+real	0m0.024s
+user	0m0.014s
+sys	0m0.009s
+Everything up-to-date
+
+real	0m0.618s
+user	0m0.006s
+sys	0m0.008s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local refs configured for 'git push':
+    main pushes to main (up to date)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.606s
+user	0m0.008s
+sys	0m0.009s
+==============================================
+  Generating Clean Project Export
+==============================================
+Generating directory structure...
+Collecting and cleaning file contents...
+Processed: .github/FUNDING.yml
+Processed: .github/ISSUE_TEMPLATE/bug_report.yml
+Processed: .github/ISSUE_TEMPLATE/config.yml
+Processed: .github/ISSUE_TEMPLATE/feature_request.yml
+Processed: .github/workflows/Issue-Handler.yaml
+Processed: .github/workflows/android.yml
+Processed: .github/workflows/android_ci.yml
+Processed: .github/workflows/close-stale-issues.yml
+Processed: .github/workflows/release.yml
+Processed: .github/workflows/sponsor.yml
+Processed: .gitignore
+Processed: .idea/AndroidProjectSystem.xml
+Processed: .idea/appInsightsSettings.xml
+Processed: .idea/codeStyles/Project.xml
+Processed: .idea/codeStyles/codeStyleConfig.xml
+Processed: .idea/compiler.xml
+Processed: .idea/deploymentTargetSelector.xml
+Processed: .idea/gradle.xml
+Processed: .idea/inspectionProfiles/Project_Default.xml
+Processed: .idea/kotlinc.xml
+Processed: .idea/ktfmt.xml
+Processed: .idea/migrations.xml
+Processed: .idea/misc.xml
+Processed: .idea/other.xml
+Processed: .idea/runConfigurations.xml
+Processed: .idea/studiobot.xml
+Processed: .idea/vcs.xml
+Processed: CHANGELOG.md
+Processed: CODE_OF_CONDUCT.md
+Processed: CONTRIBUTING.md
+Processed: LICENSE
+Processed: README.md
+Processed: app/.gitignore
+Processed: app/build.gradle.kts
+Processed: app/proguard-rules.pro
+Processed: app/schemas/com.junkfood.seal.database.AppDatabase/1.json
+Processed: app/schemas/com.junkfood.seal.database.AppDatabase/2.json
+Processed: app/schemas/com.junkfood.seal.database.AppDatabase/3.json
+Processed: app/schemas/com.junkfood.seal.database.AppDatabase/4.json
+Processed: app/schemas/com.junkfood.seal.database.AppDatabase/5.json
+Processed: app/src/androidTest/java/com/junkfood/seal/ExampleInstrumentedTest.kt
+Processed: app/src/main/AndroidManifest.xml
+Processed: app/src/main/java/com/junkfood/seal/App.kt
+Processed: app/src/main/java/com/junkfood/seal/CrashReportActivity.kt
+Processed: app/src/main/java/com/junkfood/seal/DownloadService.kt
+Processed: app/src/main/java/com/junkfood/seal/Downloader.kt
+Processed: app/src/main/java/com/junkfood/seal/MainActivity.kt
+Processed: app/src/main/java/com/junkfood/seal/NotificationActionReceiver.kt
+Processed: app/src/main/java/com/junkfood/seal/QuickDownloadActivity.kt
+Processed: app/src/main/java/com/junkfood/seal/database/AppDatabase.kt
+Processed: app/src/main/java/com/junkfood/seal/database/VideoInfoDao.kt
+Processed: app/src/main/java/com/junkfood/seal/database/backup/Backup.kt
+Processed: app/src/main/java/com/junkfood/seal/database/backup/BackupUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/database/objects/CommandTemplate.kt
+Processed: app/src/main/java/com/junkfood/seal/database/objects/CookieProfile.kt
+Processed: app/src/main/java/com/junkfood/seal/database/objects/DownloadedVideoInfo.kt
+Processed: app/src/main/java/com/junkfood/seal/database/objects/OptionShortcut.kt
+Processed: app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
+Processed: app/src/main/java/com/junkfood/seal/download/Task.kt
+Processed: app/src/main/java/com/junkfood/seal/download/TaskFactory.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/AnimatedComposable.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/CompositionLocals.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/Ext.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/HapticFeedback.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/Route.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/motion/AnimationSpecs.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/motion/MaterialSharedAxis.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/common/motion/MotionConstants.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/ActionSheetItems.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/Buttons.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/Chips.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/CommonComponents.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/DialogItems.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/Dialogs.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/DownloadQueueItem.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/FormatItem.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/IconButtons.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/ModalBottomSheetM2.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/ModalBottomSheetM3.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/PreferenceItems.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/SearchBar.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/SegementedButton.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/SelectionGroup.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/SettingItem.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/SponsorItem.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/TextField.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/VideoCard.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/component/VideoListItem.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/AppEntry.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/AppUpdater.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/NavigationDrawer.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/UpdateDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/WelcomeDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/YtdlpUpdater.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/command/TaskListPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/command/TaskLogPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/DownloadPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/DownloadSettingsDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/HomePageViewModel.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/MeteredNetworkDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/NotificationPermissionDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/PlaylistSelectionDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/download/VideoSectionSlider.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/ActionSheet.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/DownloadPageV2.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/TopBarNestedScrollConnection.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/VideoCardV2.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/configure/DownloadDialogV2.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/configure/DownloadDialogViewModel.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/configure/FormatPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/configure/InputUrlDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/downloadv2/configure/PlaylistSelectionPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/BasePreferencePage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/SettingsPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/about/AboutPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/about/CreditsPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/about/SponsorPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/about/UpdatePage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/appearance/AppearancePreferences.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/appearance/DarkThemePreferences.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/appearance/LanguagesPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/command/CommandTemplateDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/command/TemplateEditPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/command/TemplateListPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/directory/DirectoryPreferenceDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/directory/DownloadDirectoryPreferences.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/format/DownloadFormatPreferences.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/format/FormatSettingDialogs.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/format/SubtitlePreference.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/general/AdvancedSettingDialogs.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/general/GeneralDownloadPreferences.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/general/YtdlpUpdateDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/interaction/InteractionPreferencePage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/interaction/InterfaceCustomizationDialogs.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/network/CookieProfilesPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/network/CookiesViewModel.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/network/NetworkPreferences.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/network/NetworkSettingDialogs.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/network/WebViewPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/settings/troubleshooting/TroubleshootingPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/videolist/ExportImportDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/videolist/RemoveItemDialog.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/videolist/VideoDetailDrawer.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/videolist/VideoListPage.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/page/videolist/VideoListViewModel.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/svg/VectorPreviews.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/svg/__DrawableVectors.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/svg/drawablevectors/Coder.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/svg/drawablevectors/Download.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/svg/drawablevectors/VideoFiles.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/svg/drawablevectors/VideoSteaming.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/theme/ColorScheme.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/theme/Shape.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/theme/Theme.kt
+Processed: app/src/main/java/com/junkfood/seal/ui/theme/Type.kt
+Processed: app/src/main/java/com/junkfood/seal/util/DatabaseUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/DateTimeUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/DownloadUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/FileUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/LanguageSettings.kt
+Processed: app/src/main/java/com/junkfood/seal/util/NotificationUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/PreferenceUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/SponsorData.kt
+Processed: app/src/main/java/com/junkfood/seal/util/SponsorUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/TextUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/UpdateUtil.kt
+Processed: app/src/main/java/com/junkfood/seal/util/VideoInfo.kt
+Processed: app/src/main/res/drawable-anydpi-v24/ic_stat_seal.xml
+Processed: app/src/main/res/drawable/ic_launcher_foreground.xml
+Processed: app/src/main/res/drawable/ic_launcher_monochrome.xml
+Processed: app/src/main/res/drawable/icons8_matrix.xml
+Processed: app/src/main/res/drawable/icons8_telegram_app.xml
+Processed: app/src/main/res/drawable/outline_cancel_24.xml
+Processed: app/src/main/res/drawable/outline_content_copy_24.xml
+Processed: app/src/main/res/drawable/seal.xml
+Processed: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+Processed: app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+Processed: app/src/main/res/resources.properties
+Processed: app/src/main/res/values-ar-rSA/strings.xml
+Processed: app/src/main/res/values-ar/strings.xml
+Processed: app/src/main/res/values-az/strings.xml
+Processed: app/src/main/res/values-be/strings.xml
+Processed: app/src/main/res/values-bn/strings.xml
+Processed: app/src/main/res/values-ca/strings.xml
+Processed: app/src/main/res/values-ckb/strings.xml
+Processed: app/src/main/res/values-cs/strings.xml
+Processed: app/src/main/res/values-da/strings.xml
+Processed: app/src/main/res/values-de/strings.xml
+Processed: app/src/main/res/values-el/strings.xml
+Processed: app/src/main/res/values-es/strings.xml
+Processed: app/src/main/res/values-eu/strings.xml
+Processed: app/src/main/res/values-fa/strings.xml
+Processed: app/src/main/res/values-fil/strings.xml
+Processed: app/src/main/res/values-fr/strings.xml
+Processed: app/src/main/res/values-gl/strings.xml
+Processed: app/src/main/res/values-hi/strings.xml
+Processed: app/src/main/res/values-hr/strings.xml
+Processed: app/src/main/res/values-hu/strings.xml
+Processed: app/src/main/res/values-in/strings.xml
+Processed: app/src/main/res/values-it/strings.xml
+Processed: app/src/main/res/values-iw/strings.xml
+Processed: app/src/main/res/values-ja/strings.xml
+Processed: app/src/main/res/values-ji/strings.xml
+Processed: app/src/main/res/values-kab/strings.xml
+Processed: app/src/main/res/values-km/strings.xml
+Processed: app/src/main/res/values-kmr/strings.xml
+Processed: app/src/main/res/values-kn/strings.xml
+Processed: app/src/main/res/values-ko/strings.xml
+Processed: app/src/main/res/values-lt/strings.xml
+Processed: app/src/main/res/values-lv/strings.xml
+Processed: app/src/main/res/values-ml/strings.xml
+Processed: app/src/main/res/values-mn/strings.xml
+Processed: app/src/main/res/values-mr/strings.xml
+Processed: app/src/main/res/values-ms/strings.xml
+Processed: app/src/main/res/values-nb/strings.xml
+Processed: app/src/main/res/values-nl/strings.xml
+Processed: app/src/main/res/values-nn/strings.xml
+Processed: app/src/main/res/values-or/strings.xml
+Processed: app/src/main/res/values-pa/strings.xml
+Processed: app/src/main/res/values-pl/strings.xml
+Processed: app/src/main/res/values-pt-rBR/strings.xml
+Processed: app/src/main/res/values-pt-rPT/strings.xml
+Processed: app/src/main/res/values-pt/strings.xml
+Processed: app/src/main/res/values-ro/strings.xml
+Processed: app/src/main/res/values-ru/strings.xml
+Processed: app/src/main/res/values-si/strings.xml
+Processed: app/src/main/res/values-sk/strings.xml
+Processed: app/src/main/res/values-sl/strings.xml
+Processed: app/src/main/res/values-sr/strings.xml
+Processed: app/src/main/res/values-sv/strings.xml
+Processed: app/src/main/res/values-ta/strings.xml
+Processed: app/src/main/res/values-th/strings.xml
+Processed: app/src/main/res/values-tr/strings.xml
+Processed: app/src/main/res/values-uk/strings.xml
+Processed: app/src/main/res/values-ur/strings.xml
+Processed: app/src/main/res/values-uz/strings.xml
+Processed: app/src/main/res/values-vi/strings.xml
+Processed: app/src/main/res/values-zh-rCN/strings.xml
+Processed: app/src/main/res/values-zh-rTW/strings.xml
+Processed: app/src/main/res/values/ic_launcher_background.xml
+Processed: app/src/main/res/values/strings.xml
+Processed: app/src/main/res/values/themes.xml
+Processed: app/src/main/res/xml/provider_paths.xml
+Processed: app/src/test/java/com/junkfood/seal/ExampleUnitTest.kt
+Processed: build.gradle.kts
+Processed: buildSrc/.gitignore
+Processed: buildSrc/build.gradle.kts
+Processed: buildSrc/src/main/kotlin/Version.kt
+Processed: color/.gitignore
+Processed: color/build.gradle.kts
+Processed: color/proguard-rules.pro
+Processed: color/src/main/java/com/kyant/monet/ColorSpec.kt
+Processed: color/src/main/java/com/kyant/monet/Monet.kt
+Processed: color/src/main/java/com/kyant/monet/PaletteStyle.kt
+Processed: color/src/main/java/com/kyant/monet/TonalPalettes.kt
+Processed: color/src/main/java/io/material/hct/Cam16.kt
+Processed: color/src/main/java/io/material/hct/Hct.kt
+Processed: color/src/main/java/io/material/hct/HctSolver.kt
+Processed: color/src/main/java/io/material/hct/ViewingConditions.kt
+Processed: color/src/main/java/io/material/utils/ColorUtils.kt
+Processed: color/src/main/java/io/material/utils/MathUtils.kt
+Processed: color/src/main/java/io/material/utils/StringUtils.kt
+Processed: fastlane/metadata/android/ar-SA/full_description.txt
+Processed: fastlane/metadata/android/ar-SA/short_description.txt
+Processed: fastlane/metadata/android/ar-SA/title.txt
+Processed: fastlane/metadata/android/bn/short_description.txt
+Processed: fastlane/metadata/android/bn/title.txt
+Processed: fastlane/metadata/android/de-DE/changelogs/10320.txt
+Processed: fastlane/metadata/android/de-DE/changelogs/10330.txt
+Processed: fastlane/metadata/android/de-DE/changelogs/10340.txt
+Processed: fastlane/metadata/android/de-DE/changelogs/10350.txt
+Processed: fastlane/metadata/android/de-DE/full_description.txt
+Processed: fastlane/metadata/android/de-DE/short_description.txt
+Processed: fastlane/metadata/android/de-DE/title.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10704.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10714.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10724.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10734.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10804.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10814.txt
+Processed: fastlane/metadata/android/en-US/changelogs/10824.txt
+Processed: fastlane/metadata/android/en-US/full_description.txt
+Processed: fastlane/metadata/android/en-US/short_description.txt
+Processed: fastlane/metadata/android/en-US/title.txt
+Processed: fastlane/metadata/android/es/changelogs/10320.txt
+Processed: fastlane/metadata/android/es/changelogs/10330.txt
+Processed: fastlane/metadata/android/es/changelogs/10340.txt
+Processed: fastlane/metadata/android/es/full_description.txt
+Processed: fastlane/metadata/android/es/short_description.txt
+Processed: fastlane/metadata/android/es/title.txt
+Processed: fastlane/metadata/android/fr-FR/changelogs/10350.txt
+Processed: fastlane/metadata/android/fr-FR/full_description.txt
+Processed: fastlane/metadata/android/fr-FR/short_description.txt
+Processed: fastlane/metadata/android/fr-FR/title.txt
+Processed: fastlane/metadata/android/hi/full_description.txt
+Processed: fastlane/metadata/android/hi/short_description.txt
+Processed: fastlane/metadata/android/hi/title.txt
+Processed: fastlane/metadata/android/hr/changelogs/10330.txt
+Processed: fastlane/metadata/android/hr/changelogs/10340.txt
+Processed: fastlane/metadata/android/hr/full_description.txt
+Processed: fastlane/metadata/android/hr/short_description.txt
+Processed: fastlane/metadata/android/hr/title.txt
+Processed: fastlane/metadata/android/id/full_description.txt
+Processed: fastlane/metadata/android/id/short_description.txt
+Processed: fastlane/metadata/android/id/title.txt
+Processed: fastlane/metadata/android/it/full_description.txt
+Processed: fastlane/metadata/android/it/short_description.txt
+Processed: fastlane/metadata/android/it/title.txt
+Processed: fastlane/metadata/android/ja/full_description.txt
+Processed: fastlane/metadata/android/ja/short_description.txt
+Processed: fastlane/metadata/android/ja/title.txt
+Processed: fastlane/metadata/android/ml/full_description.txt
+Processed: fastlane/metadata/android/ml/short_description.txt
+Processed: fastlane/metadata/android/ml/title.txt
+Processed: fastlane/metadata/android/nb-NO/full_description.txt
+Processed: fastlane/metadata/android/nb-NO/short_description.txt
+Processed: fastlane/metadata/android/nb-NO/title.txt
+Processed: fastlane/metadata/android/nl-NL/changelogs/10350.txt
+Processed: fastlane/metadata/android/nl-NL/full_description.txt
+Processed: fastlane/metadata/android/nl-NL/short_description.txt
+Processed: fastlane/metadata/android/nl-NL/title.txt
+Processed: fastlane/metadata/android/pt-BR/short_description.txt
+Processed: fastlane/metadata/android/pt-BR/title.txt
+Processed: fastlane/metadata/android/ru/full_description.txt
+Processed: fastlane/metadata/android/ru/short_description.txt
+Processed: fastlane/metadata/android/ru/title.txt
+Processed: fastlane/metadata/android/th/full_description.txt
+Processed: fastlane/metadata/android/th/short_description.txt
+Processed: fastlane/metadata/android/th/title.txt
+Processed: fastlane/metadata/android/uk/full_description.txt
+Processed: fastlane/metadata/android/uk/short_description.txt
+Processed: fastlane/metadata/android/uk/title.txt
+Processed: fastlane/metadata/android/vi/changelogs/10320.txt
+Processed: fastlane/metadata/android/vi/full_description.txt
+Processed: fastlane/metadata/android/vi/short_description.txt
+Processed: fastlane/metadata/android/vi/title.txt
+Processed: fastlane/metadata/android/zh-CN/full_description.txt
+Processed: fastlane/metadata/android/zh-CN/short_description.txt
+Processed: fastlane/metadata/android/zh-CN/title.txt
+Processed: fastlane/metadata/android/zh-TW/changelogs/10330.txt
+Processed: fastlane/metadata/android/zh-TW/full_description.txt
+Processed: fastlane/metadata/android/zh-TW/short_description.txt
+Processed: fastlane/metadata/android/zh-TW/title.txt
+Processed: gradle.properties
+Processed: gradle/libs.versions.toml
+Processed: gradle/wrapper/gradle-wrapper.properties
+Processed: gradlew
+Processed: gradlew.bat
+Processed: settings.gradle.kts
+Processed: translations/README-ar.md
+Processed: translations/README-az.md
+Processed: translations/README-bn.md
+Processed: translations/README-fa.md
+Processed: translations/README-hi.md
+Processed: translations/README-id.md
+Processed: translations/README-it.md
+Processed: translations/README-ja.md
+Processed: translations/README-pt.md
+Processed: translations/README-ru.md
+Processed: translations/README-sr.md
+Processed: translations/README-th.md
+Processed: translations/README-ua.md
+Processed: translations/README-zh_Hans.md
+Processed: translations/README-zh_Hant.md
+
+Export Complete: docs/llm/dump.txt
+
+real	0m3.433s
+user	0m1.962s
+sys	0m2.165s
+On branch main
+Your branch is ahead of 'origin/main' by 12 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   docs/llm/dump.txt
+	modified:   docs/llm/output.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+real	0m0.019s
+user	0m0.011s
+sys	0m0.008s
+warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
+
+real	0m0.036s
+user	0m0.031s
+sys	0m0.005s
+On branch main
+Your branch is ahead of 'origin/main' by 12 commits.
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   docs/llm/dump.txt
+	modified:   docs/llm/output.txt
+
+
+real	0m0.020s
+user	0m0.016s
+sys	0m0.004s
+[main 3e5edef0] run dump
+ 2 files changed, 504 insertions(+), 1 deletion(-)
+
+real	0m0.044s
+user	0m0.026s
+sys	0m0.017s
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (6/6), 4.29 KiB | 4.29 MiB/s, done.
+Total 6 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To github.com:kusl/seal.git
+   e57a9ca0..3e5edef0  main -> main
+
+real	0m1.038s
+user	0m0.019s
+sys	0m0.025s
+kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
