@@ -322,9 +322,25 @@ fun DownloadPageImplV2(
     onActionPost: (Task, UiAction) -> Unit,
 ) {
     var activeFilter by remember { mutableStateOf(Filter.All) }
-    val filteredMap by
+
+    // ── PERFORMANCE-CRITICAL DERIVATION ────────────────────────────────────
+    // We derive a list of *just the Tasks* (no state attached), filtered and sorted by their
+    // structural state. The crucial property is that this list is structurally equal across
+    // progress ticks within `Running` — the same Tasks in the same order. derivedStateOf
+    // compares results with `==`, so consumers of `sortedTasks` are NOT invalidated when only
+    // a task's progress changes.
+    //
+    // Each card body below reads `taskDownloadStateMap[task]` itself, so Compose's snapshot
+    // system tracks per-task reads. When task X's progress updates, only the card for task X
+    // recomposes — not the whole list. This is the fix for the UI freeze.
+    val sortedTasks by
         remember(activeFilter) {
-            derivedStateOf { taskDownloadStateMap.filter { activeFilter.predict(it.toPair()) } }
+            derivedStateOf {
+                taskDownloadStateMap.entries
+                    .filter { activeFilter.predict(it.toPair()) }
+                    .sortedBy { (_, state) -> state.downloadState }
+                    .map { it.key }
+            }
         }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -342,9 +358,14 @@ fun DownloadPageImplV2(
         }
     }
 
+    // Clear selection if the selected task has been removed from the queue. Keys on size so we
+    // re-check when the task set changes (add/remove). The original code had a typo
+    // (`selectedTask == null` — a comparison, not an assignment) which made this a no-op; that
+    // bug is fixed here.
     LaunchedEffect(selectedTask, taskDownloadStateMap.size) {
-        if (!taskDownloadStateMap.contains(selectedTask)) {
-            selectedTask == null
+        val current = selectedTask
+        if (current != null && !taskDownloadStateMap.contains(current)) {
+            selectedTask = null
         }
     }
 
@@ -434,16 +455,23 @@ fun DownloadPageImplV2(
                             PaddingValues(start = 20.dp, end = 20.dp, bottom = 80.dp),
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    if (filteredMap.isNotEmpty()) {
+                    if (sortedTasks.isNotEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
+                            // Compute counts here, inside the item body. This recomposes only
+                            // when the SubHeader item itself recomposes, which happens when
+                            // sortedTasks changes — i.e. on add/remove/classification, NOT on
+                            // progress ticks.
                             val videoCount =
-                                filteredMap.count {
-                                    !it.value.viewState.videoFormats.isNullOrEmpty()
+                                sortedTasks.count { task ->
+                                    taskDownloadStateMap[task]
+                                        ?.viewState
+                                        ?.videoFormats
+                                        ?.isNotEmpty() == true
                                 }
                             SubHeader(
                                 modifier = Modifier,
                                 videoCount = videoCount,
-                                audioCount = filteredMap.size - videoCount,
+                                audioCount = sortedTasks.size - videoCount,
                                 isGridView = isGridView,
                                 onToggleView = { isGridView = !isGridView },
                                 onShowMenu = { context.makeToast("Not implemented yet!") },
@@ -452,11 +480,12 @@ fun DownloadPageImplV2(
                     }
 
                     if (isGridView) {
-                        items(
-                            items =
-                                filteredMap.toList().sortedBy { (_, state) -> state.downloadState },
-                            key = { (task, _) -> task.id },
-                        ) { (task, state) ->
+                        items(items = sortedTasks, key = { it.id }) { task ->
+                            // Per-card state lookup. Compose's snapshot system tracks the read
+                            // of taskDownloadStateMap[task] for THIS card only. When this
+                            // task's progress updates, only this card's body re-runs — other
+                            // cards in the list are untouched.
+                            val state = taskDownloadStateMap[task] ?: return@items
                             with(state.viewState) {
                                 VideoCardV2(
                                     modifier = Modifier.padding(bottom = 20.dp).padding(),
@@ -481,11 +510,12 @@ fun DownloadPageImplV2(
                         }
                     } else {
                         items(
-                            items =
-                                filteredMap.toList().sortedBy { (_, state) -> state.downloadState },
-                            key = { (task, _) -> task.id },
+                            items = sortedTasks,
+                            key = { it.id },
                             span = { GridItemSpan(maxLineSpan) },
-                        ) { (task, state) ->
+                        ) { task ->
+                            // See comment above on per-card state lookup.
+                            val state = taskDownloadStateMap[task] ?: return@items
                             VideoListItem(
                                 modifier = Modifier.padding(bottom = 16.dp),
                                 viewState = state.viewState,
@@ -502,7 +532,7 @@ fun DownloadPageImplV2(
                 }
             }
         }
-        if (filteredMap.isEmpty()) {
+        if (sortedTasks.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize()) {
                 DownloadQueuePlaceholder(
                     modifier =
