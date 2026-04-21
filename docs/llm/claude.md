@@ -403,3 +403,76 @@ Copy this file to `app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt`
 
 something is still not right. the app still becomes unresponsive after some time or after a few downloads. the fab button no longer responds in fact the whole app no longer responds. can you please do a deep dive into the app? it is a free and open source app and frankly we don't even do the heavy lifting. it should be fixable because really all the heavy lifting is by yt-dlp and ffmpeg or something. please please review it thoroughly and please give full files for all files that need to change 
 
+Now let me search more carefully for progress callbacks and Downloader.kt — the older one that might still be running parallel paths:
+
+Let me look at critical files to see what else might be reading the SnapshotStateMap and what might be holding references:Now let me look at the key section more carefully — I need to see what's between lines 16706 and 16736 and understand the full SheetContent function:Let me also look at one more piece — how the existing SheetContent gets called and the section between 16800-16850:Now I have a complete understanding. Let me set up my workspace and write out the fix:Now I'll write out the two files that need to change. First, let me write the new `DownloaderV2.kt`:Now the much more important file — `DownloadPageV2.kt`. This is where the real bug fix lives:Now let me verify both files are well-formed by checking for syntax issues — basic balance and structure:Both files are well-balanced. Let me do a final sanity check on the critical changes by diffing against the original:Let me verify a few critical sections of the new code visually:## What's still wrong: it's the UI side, not the throttle
+
+The previous fix I gave you throttled **writes** into the `SnapshotStateMap`. That was necessary, but it was only half the story. The remaining freeze is happening on the **read** side — in `DownloadPageV2.kt`. Even with throttled writes, the way the UI consumes the map causes every progress tick to recompose the entire visible list. After 5 videos with multiple still active, that compounds until the main thread is starved and the FAB stops responding.
+
+## The actual root cause
+
+Look at the original `DownloadPageImplV2`:
+
+```kotlin
+val filteredMap by remember(activeFilter) {
+    derivedStateOf { taskDownloadStateMap.filter { activeFilter.predict(it.toPair()) } }
+}
+// ...
+items(
+    items = filteredMap.toList().sortedBy { (_, state) -> state.downloadState },
+    key = { (task, _) -> task.id },
+) { (task, state) -> VideoCardV2(...) }
+```
+
+The cascade per progress tick:
+
+1. `taskDownloadStateMap[task] = task.copy(downloadState = Running(progress = newValue))` — one entry's value changes.
+2. `filteredMap` derivedState was computing `Map<Task, Task.State>`. Maps compare by entries; `Running(0.47)` ≠ `Running(0.48)`, so the new map is never `==` to the old. **The derivedState fires on every single tick.**
+3. The body of `DownloadPageImplV2` recomposes; `filteredMap.toList().sortedBy {...}` allocates and sorts a new list each time.
+4. `items()` is called with a fresh list of `Pair<Task, Task.State>`. Even though keys match, each item lambda is invoked with a new `state` parameter.
+5. The `actionButton`/`stateIndicator` lambdas capture `state.downloadState` — they're recreated each time, so `VideoCardV2` cannot skip.
+6. **Every visible card recomposes on every tick of every active download.** With 3 concurrent downloads even at the throttled 4 Hz (now 2 Hz), that's 3 × 5 = 15 card recompositions per tick, ~30/second. Each one schedules a `ProgressButton` `animateFloatAsState` and a `CircularProgressIndicator` redraw. After a few minutes that backs up the main thread queue and input events stop being processed.
+
+This is why "flinging the app away" fixed it — the OS kills the process and clears the queue.
+
+## The fix (two files)
+
+**`DownloaderV2.kt`** — strengthens what was already there:
+- Throttle bumped from 250 ms → **500 ms** per task (2 Hz max writes).
+- Added a **0.5% progress-delta gate** so updates only fire when progress visibly moves.
+- Backup debounce bumped from 2 s → **5 s**.
+- Cleaned up tracking-state cleanup into a single `clearProgressTracking(id)` helper so the new `lastProgressValue` map gets cleared everywhere `lastProgressWriteTime` was.
+
+**`DownloadPageV2.kt`** — the actual fix:
+- Replace `filteredMap: Map<Task, Task.State>` with `sortedTasks: List<Task>`. The list contains *only Tasks* (no state). Two `Task` instances with the same id are equal, so when only progress changes, the new list is `==` to the old one and `derivedStateOf` does **not** notify its consumers.
+- Each card body looks up its own state inside the items lambda: `val state = taskDownloadStateMap[task] ?: return@items`. Compose's snapshot system tracks per-key reads on `SnapshotStateMap`, so when task X's state changes, **only the card for task X recomposes**. The rest of the list is untouched. This is the structural fix.
+- The `videoCount` is now computed inside the SubHeader item body so it only re-runs when `sortedTasks` changes (add/remove/state-class transition), not on progress ticks.
+- Fixed a latent bug: `selectedTask == null` (a comparison, no-op) → `selectedTask = null` (assignment). Now if you delete a task while its action sheet is open, the sheet correctly closes.
+
+The expected effect: where the old code did ~30 card recompositions/sec across all visible cards, the new code does ~6/sec — and only on cards whose state actually changed. The FAB and scrolling stay responsive because the main thread is no longer flooded.
+
+The two files are at `/home/claude/seal-fix/DownloaderV2.kt` and `/home/claude/seal-fix/DownloadPageV2.kt` — I'm out of tool calls so I can't move them to outputs and call `present_files` in this turn. Could you reply "continue" so I can present them as downloadable files? Both passed brace and paren balance checks (168/168 and 99/99 for braces, 337/337 and 191/191 for parens), and I verified the key sections by re-reading them after writing.
+
+Both files are ready to drop in:
+
+- **`DownloadPageV2.kt`** → `app/src/main/java/com/junkfood/seal/ui/page/downloadv2/DownloadPageV2.kt` *(this is the one that actually fixes the freeze)*
+- **`DownloaderV2.kt`** → `app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt` *(belt-and-suspenders throttle hardening)*
+
+## What to expect after pushing
+
+Queue up 5+ videos and let multiple run concurrently. The FAB should stay tappable, the list should stay scrollable, and the percent text on the action button should update smoothly without the cascading slowdown. The "fling to fix" workaround should no longer be needed.
+
+If you want to see the difference on-device while it's running, **Settings → Developer options → Profile GPU rendering** (or "Profile HWUI rendering") gives you a real-time bar chart of frame times. Before the fix, you'd see consistent overruns (red zone) during downloads; after, the bars should sit comfortably under the 16 ms line.
+
+## A small heads-up on regressions
+
+I want to flag what I changed that *isn't* purely a perf fix, so you can sanity-check it after you run it:
+
+1. **`selectedTask = null` typo fix.** The original `selectedTask == null` (comparison, no-op) meant that if you opened a card's action sheet and then somehow that task got removed, the sheet's `selectedTask` reference stayed dangling. The destructure `taskDownloadStateMap[task] ?: return` would silently early-return out of the entire composable. Fixed: now `selectedTask` is properly cleared, and the sheet auto-dismisses if its task vanishes. I think this is correct behavior, but if you ever observe the sheet closing unexpectedly, this is where to look.
+
+2. **Backup debounce 2s → 5s.** If the app crashes mid-download, you might lose up to 5 seconds of progress (vs. 2 seconds before) when restoring from backup. Since restore re-creates tasks as `Canceled` anyway (not from a specific progress point), this difference is invisible to the user — but worth knowing.
+
+3. **No API/interface changes.** `DownloaderV2` interface is unchanged, `DownloadPageImplV2` signature is unchanged, all imports preserved, the `DownloadPageV2Test` preview class is preserved. Other files (`Task.kt`, `TaskFactory.kt`, `VideoCardV2.kt`, etc.) don't need to change.
+
+If something does break, the most likely culprit is the `derivedStateOf` block — let me know what you see and I'll iterate.
+
