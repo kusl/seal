@@ -445,6 +445,17 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
 
                         downloadState = Completed(pathList.firstOrNull())
 
+                        // ── RELEASE VIDEOINFO ───────────────────────────────
+                        // Drop the (potentially large) VideoInfo now that the
+                        // task is finished. A Completed task is NOT Restartable
+                        // (only Canceled/Error are), the UI renders from
+                        // viewState, the action sheet uses filePath + url, and
+                        // the persisted backup explicitly excludes Completed
+                        // entries — so nothing reads videoInfo after this point.
+                        // Releasing it keeps memory flat as finished downloads
+                        // accumulate in the queue over a long session.
+                        info = null
+
                         val text =
                             appContext.getString(
                                 if (pathList.isEmpty()) R.string.status_completed
@@ -580,6 +591,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         clearProgressTracking(id)
 
                         downloadState = Completed(null)
+
+                        // Release VideoInfo for the finished task — see the note in download().
+                        info = null
 
                         val text = appContext.getString(R.string.status_completed)
 

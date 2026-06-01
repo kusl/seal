@@ -131,34 +131,106 @@ class App : Application() {
         lateinit var connectivityManager: ConnectivityManager
         lateinit var packageInfo: PackageInfo
 
-        var isServiceRunning = false
+        // ────────────────────────────────────────────────────────────────────────────────────
+        //  Foreground-service binding
+        // ────────────────────────────────────────────────────────────────────────────────────
+        //
+        //  The download work scheduler toggles the foreground service on every *structural*
+        //  task-state transition (running ⇄ idle). startService()/stopService() are therefore
+        //  called frequently, and from two different threads:
+        //
+        //    • the work scheduler runs on Dispatchers.Default (background), and
+        //    • QuickDownloadActivity calls startService() on the main thread.
+        //
+        //  The previous implementation gated startService() on a flag that was only flipped to
+        //  `true` inside ServiceConnection.onServiceConnected — which is delivered
+        //  asynchronously on the main thread, *after* bindService() returns. That left a window
+        //  in which a second startService() (very common during a burst of state changes) saw the
+        //  flag still `false` and issued a *second* bindService() for the same connection. Each
+        //  bind needs a matching unbind, so the surplus bind leaked (logcat:
+        //  "ServiceConnectionLeaked: Service has leaked ServiceConnection ... that was originally
+        //  bound here"). Over a long session of downloading + switching apps, those leaked
+        //  bindings (and the foreground-service lifecycle callbacks they spawn on the main thread)
+        //  pile up and can starve the UI thread — exactly the "stops responding after a while,
+        //  recovers after backgrounding" symptom.
+        //
+        //  Fixes here:
+        //    1. Track binding state *synchronously* at the moment we call bind/unbind (isBound),
+        //       NOT from the async callback. This makes start/stop genuinely idempotent: a
+        //       redundant startService() while bound is a no-op, and an actual bind only happens
+        //       on a true idle→running edge.
+        //    2. Guard the whole start/stop with a lock so the background scheduler and the main
+        //       thread share one consistent view of the flag.
+        //    3. If bindService() returns false (system not bringing the service up), release the
+        //       connection we passed in, per the Android contract, so nothing leaks.
+
+        private val serviceLock = Any()
+
+        @Volatile private var isBound = false
+
+        /**
+         * Public, read-only mirror of the binding state. Kept so existing call sites that read
+         * [App.isServiceRunning] continue to compile and behave as before.
+         */
+        @JvmStatic
+        val isServiceRunning: Boolean
+            get() = isBound
 
         private val connection =
             object : ServiceConnection {
                 override fun onServiceConnected(className: ComponentName, service: IBinder) {
-                    val binder = service as DownloadService.DownloadServiceBinder
-                    isServiceRunning = true
+                    // Binding state is tracked synchronously at bind/unbind time (see above), not
+                    // here. We keep the cast purely as a sanity check on the returned binder.
+                    @Suppress("UNUSED_VARIABLE")
+                    val binder = service as? DownloadService.DownloadServiceBinder
                 }
 
-                override fun onServiceDisconnected(arg0: ComponentName) {}
+                override fun onServiceDisconnected(arg0: ComponentName) {
+                    // The service process went away (e.g. it was killed). Reflect that so a future
+                    // startService() will re-bind instead of being short-circuited by a stale flag.
+                    synchronized(serviceLock) { isBound = false }
+                }
             }
 
-        fun startService() {
-            if (isServiceRunning) return
-            Intent(context.applicationContext, DownloadService::class.java).also { intent ->
-                context.applicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        fun startService() =
+            synchronized(serviceLock) {
+                if (isBound) return@synchronized
+                val intent = Intent(context.applicationContext, DownloadService::class.java)
+                val bringingUp =
+                    try {
+                        context.applicationContext.bindService(
+                            intent,
+                            connection,
+                            Context.BIND_AUTO_CREATE,
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        false
+                    }
+                if (bringingUp) {
+                    isBound = true
+                } else {
+                    // bindService() did not start the service. We must still unbind the connection
+                    // we just registered, otherwise it leaks.
+                    try {
+                        context.applicationContext.unbindService(connection)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
             }
-        }
 
-        fun stopService() {
-            if (!isServiceRunning) return
-            try {
-                isServiceRunning = false
-                context.applicationContext.run { unbindService(connection) }
-            } catch (e: Exception) {
-                e.printStackTrace()
+        fun stopService() =
+            synchronized(serviceLock) {
+                if (!isBound) return@synchronized
+                isBound = false
+                try {
+                    context.applicationContext.unbindService(connection)
+                } catch (e: Exception) {
+                    // Connection was already unregistered (e.g. the service died). Nothing to do.
+                    e.printStackTrace()
+                }
             }
-        }
 
         val privateDownloadDir: String
             get() =
