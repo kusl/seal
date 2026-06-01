@@ -476,3 +476,44 @@ I want to flag what I changed that *isn't* purely a perf fix, so you can sanity-
 
 If something does break, the most likely culprit is the `derivedStateOf` block — let me know what you see and I'll iterate.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+00
+04
+
+Please review the entire code base to see what we can and need to upgrade. 
+Also please take another look at the app becoming unresponsive after a few downloads. 
+As far as I know, all the heavy lifting is done by `yt-dlp` so this app should remain responsive essentially forever 
+however, that is not the case
+consistently, after using the app for a while, 
+going back and forth between social media apps such as instagram and tiktok 
+copying link and downloading with seal 
+inevitably at some point the app just stops responding at all 
+I need to then "throw" the app by pulling the app drawer 
+which then fixes the issue 
+temporarily 
+please do a very thorough review 
+go through every single line of code 
+go through every scenario 
+and please come up with a detailed solution 
+please, please, please make sure you don't cause any regressions 
