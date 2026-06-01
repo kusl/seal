@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Mon Jun  1 09:41:50 AM EDT 2026
+Generated: Mon Jun  1 10:14:47 AM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -3008,7 +3008,7 @@ Public License instead of this License.  But first, please read
 
 ================================================================================
 FILE: README.md
-SIZE: 9.83 KB
+SIZE: 9.97 KB
 ================================================================================
 
 <div align="center">
@@ -3130,7 +3130,7 @@ Join our [Telegram Channel](https://t.me/seal_app) or [Matrix Space](https://mat
 
 ## 💖 Sponsors
 
-<p><!-- sponsors --><a href="https://github.com/reallyrealcolby"><img src="https:&#x2F;&#x2F;github.com&#x2F;reallyrealcolby.png" width="60px" alt="User avatar: " /></a><!-- sponsors --></p>
+<p><!-- sponsors --><a href="https://github.com/stealthgyro"><img src="https:&#x2F;&#x2F;github.com&#x2F;stealthgyro.png" width="60px" alt="User avatar: Chris Royer" /></a><a href="https://github.com/jhiber"><img src="https:&#x2F;&#x2F;github.com&#x2F;jhiber.png" width="60px" alt="User avatar: " /></a><!-- sponsors --></p>
 
 
 Seal will be always free and open source for everyone. If you like it, please consider [sponsoring me](https://github.com/sponsors/JunkFood02)!
@@ -4229,7 +4229,7 @@ SIZE: 5.08 KB
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/App.kt
-SIZE: 8.64 KB
+SIZE: 13.08 KB
 ================================================================================
 
 package com.junkfood.seal
@@ -4365,34 +4365,106 @@ class App : Application() {
         lateinit var connectivityManager: ConnectivityManager
         lateinit var packageInfo: PackageInfo
 
-        var isServiceRunning = false
+        // ────────────────────────────────────────────────────────────────────────────────────
+        //  Foreground-service binding
+        // ────────────────────────────────────────────────────────────────────────────────────
+        //
+        //  The download work scheduler toggles the foreground service on every *structural*
+        //  task-state transition (running ⇄ idle). startService()/stopService() are therefore
+        //  called frequently, and from two different threads:
+        //
+        //    • the work scheduler runs on Dispatchers.Default (background), and
+        //    • QuickDownloadActivity calls startService() on the main thread.
+        //
+        //  The previous implementation gated startService() on a flag that was only flipped to
+        //  `true` inside ServiceConnection.onServiceConnected — which is delivered
+        //  asynchronously on the main thread, *after* bindService() returns. That left a window
+        //  in which a second startService() (very common during a burst of state changes) saw the
+        //  flag still `false` and issued a *second* bindService() for the same connection. Each
+        //  bind needs a matching unbind, so the surplus bind leaked (logcat:
+        //  "ServiceConnectionLeaked: Service has leaked ServiceConnection ... that was originally
+        //  bound here"). Over a long session of downloading + switching apps, those leaked
+        //  bindings (and the foreground-service lifecycle callbacks they spawn on the main thread)
+        //  pile up and can starve the UI thread — exactly the "stops responding after a while,
+        //  recovers after backgrounding" symptom.
+        //
+        //  Fixes here:
+        //    1. Track binding state *synchronously* at the moment we call bind/unbind (isBound),
+        //       NOT from the async callback. This makes start/stop genuinely idempotent: a
+        //       redundant startService() while bound is a no-op, and an actual bind only happens
+        //       on a true idle→running edge.
+        //    2. Guard the whole start/stop with a lock so the background scheduler and the main
+        //       thread share one consistent view of the flag.
+        //    3. If bindService() returns false (system not bringing the service up), release the
+        //       connection we passed in, per the Android contract, so nothing leaks.
+
+        private val serviceLock = Any()
+
+        @Volatile private var isBound = false
+
+        /**
+         * Public, read-only mirror of the binding state. Kept so existing call sites that read
+         * [App.isServiceRunning] continue to compile and behave as before.
+         */
+        @JvmStatic
+        val isServiceRunning: Boolean
+            get() = isBound
 
         private val connection =
             object : ServiceConnection {
                 override fun onServiceConnected(className: ComponentName, service: IBinder) {
-                    val binder = service as DownloadService.DownloadServiceBinder
-                    isServiceRunning = true
+                    // Binding state is tracked synchronously at bind/unbind time (see above), not
+                    // here. We keep the cast purely as a sanity check on the returned binder.
+                    @Suppress("UNUSED_VARIABLE")
+                    val binder = service as? DownloadService.DownloadServiceBinder
                 }
 
-                override fun onServiceDisconnected(arg0: ComponentName) {}
+                override fun onServiceDisconnected(arg0: ComponentName) {
+                    // The service process went away (e.g. it was killed). Reflect that so a future
+                    // startService() will re-bind instead of being short-circuited by a stale flag.
+                    synchronized(serviceLock) { isBound = false }
+                }
             }
 
-        fun startService() {
-            if (isServiceRunning) return
-            Intent(context.applicationContext, DownloadService::class.java).also { intent ->
-                context.applicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        fun startService() =
+            synchronized(serviceLock) {
+                if (isBound) return@synchronized
+                val intent = Intent(context.applicationContext, DownloadService::class.java)
+                val bringingUp =
+                    try {
+                        context.applicationContext.bindService(
+                            intent,
+                            connection,
+                            Context.BIND_AUTO_CREATE,
+                        )
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        false
+                    }
+                if (bringingUp) {
+                    isBound = true
+                } else {
+                    // bindService() did not start the service. We must still unbind the connection
+                    // we just registered, otherwise it leaks.
+                    try {
+                        context.applicationContext.unbindService(connection)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
             }
-        }
 
-        fun stopService() {
-            if (!isServiceRunning) return
-            try {
-                isServiceRunning = false
-                context.applicationContext.run { unbindService(connection) }
-            } catch (e: Exception) {
-                e.printStackTrace()
+        fun stopService() =
+            synchronized(serviceLock) {
+                if (!isBound) return@synchronized
+                isBound = false
+                try {
+                    context.applicationContext.unbindService(connection)
+                } catch (e: Exception) {
+                    // Connection was already unregistered (e.g. the service died). Nothing to do.
+                    e.printStackTrace()
+                }
             }
-        }
 
         val privateDownloadDir: String
             get() =
@@ -4565,7 +4637,7 @@ fun CrashReportPage(errorMessage: String = "ERROR_EXAMPLE", onClick: () -> Unit 
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/DownloadService.kt
-SIZE: 1.34 KB
+SIZE: 2.21 KB
 ================================================================================
 
 package com.junkfood.seal
@@ -4591,16 +4663,30 @@ class DownloadService : Service() {
                 PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
             }
         val notification = NotificationUtil.makeServiceNotification(pendingIntent)
-        startForeground(SERVICE_NOTIFICATION_ID, notification)
+        // startForeground() can throw on API 31+ when the service is brought up while the app is
+        // in the background (ForegroundServiceStartNotAllowedException) or when a foreground-start
+        // restriction otherwise applies. Because onBind() runs on the main thread, an uncaught
+        // exception here would be routed to App's default uncaught-exception handler and crash the
+        // whole process. The binding itself is still valid even if we can't promote it to the
+        // foreground, so we swallow the failure and keep running as an ordinary bound service.
+        try {
+            startForeground(SERVICE_NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            Log.w(TAG, "onBind: unable to promote to foreground service", e)
+        }
         return DownloadServiceBinder()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         Log.d(TAG, "onUnbind: ")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            stopForeground(true)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION") stopForeground(true)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "onUnbind: unable to stop foreground", e)
         }
         stopSelf()
         return super.onUnbind(intent)
@@ -5862,7 +5948,7 @@ data class OptionShortcut(@PrimaryKey(autoGenerate = true) val id: Long = 0, val
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
-SIZE: 23.29 KB
+SIZE: 24.22 KB
 ================================================================================
 
 package com.junkfood.seal.download
@@ -6312,6 +6398,17 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
 
                         downloadState = Completed(pathList.firstOrNull())
 
+                        // ── RELEASE VIDEOINFO ───────────────────────────────
+                        // Drop the (potentially large) VideoInfo now that the
+                        // task is finished. A Completed task is NOT Restartable
+                        // (only Canceled/Error are), the UI renders from
+                        // viewState, the action sheet uses filePath + url, and
+                        // the persisted backup explicitly excludes Completed
+                        // entries — so nothing reads videoInfo after this point.
+                        // Releasing it keeps memory flat as finished downloads
+                        // accumulate in the queue over a long session.
+                        info = null
+
                         val text =
                             appContext.getString(
                                 if (pathList.isEmpty()) R.string.status_completed
@@ -6447,6 +6544,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         clearProgressTracking(id)
 
                         downloadState = Completed(null)
+
+                        // Release VideoInfo for the finished task — see the note in download().
+                        info = null
 
                         val text = appContext.getString(R.string.status_completed)
 
