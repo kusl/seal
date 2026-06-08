@@ -136,6 +136,8 @@ jobs:
       # We override the version at Gradle level using project properties.
       # This avoids modifying Version.kt (which would dirty the working tree).
       - name: Build signed release APK
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           ./gradlew assembleGenericRelease \
             -PversionNameOverride="${{ steps.version.outputs.name }}" \

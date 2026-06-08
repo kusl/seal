@@ -167,3 +167,54 @@ Some of the UI designs and codes are borrowed from [Read You](https://github.com
 <a href="#start-of-content">👆 Scroll to top</a>
 </td></table>
 </div>
+
+
+
+
+
+
+
+
+
+
+
+## 📡 Crash & ANR Reporting (Sentry)
+
+> [!Important]
+>
+> This is a **fork-specific** change and is **not** part of upstream Seal.
+
+To help diagnose stability problems — in particular a UI freeze / ANR (Application Not Responding)
+that can occur during heavy "copy link → switch app → paste → download" workflows — this build
+integrates [Sentry](https://sentry.io) for automatic crash, ANR, and diagnostic reporting.
+
+**What gets collected and sent**
+
+- **Crashes** (unhandled exceptions and native/NDK crashes) and **ANRs**, including the OS thread
+  dump and a stack-profile (flamegraph) of the main thread at the time of an ANR.
+- **Breadcrumbs**: a trail of recent app events leading up to an issue, including the app's own
+  `Log.*` messages, activity/app lifecycle, and system events.
+- **Performance traces** for database and file I/O operations (used to pinpoint slow work on the
+  main thread).
+- A **screenshot** and a **view-hierarchy snapshot** captured at the moment an error occurs.
+- **Device & app context**: model, manufacturer, OS version, ABI, app version, memory/battery/
+  storage/connectivity state, and the bundled yt-dlp version.
+- Because detailed debugging was the goal, **`sendDefaultPii` is enabled**, which means events may
+  also include data such as your IP address and device name. Screenshots/view hierarchies can
+  contain whatever is on screen at the time (e.g. a URL you were downloading).
+
+**Where it goes:** the `collabs-with-kushal` organization's `seal` project on Sentry's EU servers.
+
+**Offline behavior:** every event is written to the app's cache first, then sent. If the device is
+offline when a crash/ANR happens, the report is stored on disk and delivered automatically on the
+next launch or when connectivity returns — so reports are not lost.
+
+**Builds without telemetry:** the **F-Droid** flavor (`fdroid`) ships with the Sentry DSN blanked
+out, so Sentry is never initialized and **nothing is collected or sent** there.
+
+**How to disable it entirely:** build the `fdroid` flavor, or set the `SENTRY_DSN` value in
+`app/build.gradle.kts` to `""` (App.kt skips initialization when the DSN is blank). The on-device
+crash screen continues to work either way.
+
+**Disabling just the ANR main-thread profiler:** set the
+`io.sentry.anr.profiling.sample-rate` meta-data in `app/src/main/AndroidManifest.xml` to `0.0`.

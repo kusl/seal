@@ -39,6 +39,26 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         tools:targetApi="tiramisu">
+
+        <!--
+          Sentry: we disable auto-init so App.kt can initialize the SDK manually with full
+          programmatic control (see App.initSentry()). The DSN and all other options live there.
+          This meta-data only controls the SentryInitProvider ContentProvider; manual init still
+          reads any Sentry meta-data declared here.
+        -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+        <!--
+          ANR stack profiling (SDK 8.35.0+): when an ANR is detected, capture a profile (flamegraph)
+          of what the main thread was doing, store it to disk, and attach it to the ANR event on the
+          next launch. Set here (rather than in code) because it's an experimental option that the
+          manifest reader supports directly. Set to 0.0 to disable.
+        -->
+        <meta-data
+            android:name="io.sentry.anr.profiling.sample-rate"
+            android:value="1.0" />
+
         <activity
             android:name=".CrashReportActivity"
             android:exported="false"

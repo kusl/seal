@@ -66,3 +66,15 @@
 #-keepnames class <1>$$serializer { # -keepnames suffices; class is kept when serializer() is kept.
 #    static <1>$$serializer INSTANCE;
 #}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Sentry
+# ──────────────────────────────────────────────────────────────────────────────
+# The Sentry SDK ships its own consumer ProGuard/R8 rules, so its classes are kept
+# automatically and no -keep rules are required here.
+#
+# This project already uses -dontobfuscate, so class/method names survive into release
+# builds and Sentry stack traces are readable. We additionally keep the source file name
+# and line-number table so traces (both Sentry's and the existing on-device crash screen)
+# show file:line. This only affects debug metadata in the DEX — there is no runtime impact.
+-keepattributes SourceFile,LineNumberTable
