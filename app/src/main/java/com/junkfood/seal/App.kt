@@ -59,13 +59,43 @@ import org.koin.dsl.module
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        // ──────────────────────────────────────────────────────────────────────────────────────
+        //  Initialization order is load-bearing here. Do NOT reorder without reading this.
+        // ──────────────────────────────────────────────────────────────────────────────────────
+        //
+        //  initSentry() (called below) reads a preference — YT_DLP_VERSION.getString() — from
+        //  inside the SentryAndroid.init { … } options lambda. The very first preference access
+        //  forces class initialization of PreferenceUtil, whose static initializer eagerly builds
+        //  templateListStateFlow:
+        //
+        //      val templateListStateFlow =
+        //          DatabaseUtil.getTemplateFlow().stateIn(applicationScope, …)
+        //
+        //  That single property transitively requires *both* of the companion's lateinit fields:
+        //    • DatabaseUtil.getTemplateFlow() forces DatabaseUtil's own static init, which builds
+        //      the Room database via Room.databaseBuilder(context, …)   →  needs App.context
+        //    • .stateIn(applicationScope, …)                            →  needs App.applicationScope
+        //
+        //  If either is still uninitialized at that moment the chain throws
+        //  UninitializedPropertyAccessException → ExceptionInInitializerError →
+        //  NoClassDefFoundError(PreferenceUtil), and the app dies the instant it is launched.
+        //
+        //  Therefore these three cheap, dependency-free steps MUST run before initSentry():
+        //    1. context           — required by DatabaseUtil's Room builder
+        //    2. applicationScope  — required by the .stateIn(…) above (and DatabaseUtil.init)
+        //    3. MMKV.initialize   — PreferenceUtil's getters read from MMKV
+        //  None of them depends on Koin or on the heavyweight init below, so this is safe and early.
+        context = applicationContext
+        applicationScope = CoroutineScope(SupervisorJob())
         MMKV.initialize(this)
 
-        // Initialize Sentry as early as possible — right after MMKV (which Sentry has no
-        // dependency on, but which we read below for the yt-dlp version tag) and before anything
-        // else runs. Initializing here means the SDK's crash handler, ANR detection, breadcrumb
-        // collectors, and offline cache are all live for the *entire* rest of startup, so a crash
-        // or freeze that happens while youtube-dl/ffmpeg/aria2c are initializing is still captured.
+        // Initialize Sentry as early as correctness allows — immediately after the minimal app
+        // state it transitively depends on (context, applicationScope, MMKV), and before the
+        // heavyweight youtube-dl/ffmpeg/aria2c initialization further down. Initializing here means
+        // the SDK's crash handler, ANR detection, breadcrumb collectors, and offline cache are all
+        // live for the *entire* remainder of startup, so a crash or freeze that happens while
+        // youtube-dl/ffmpeg/aria2c are initializing is still captured.
         //
         // This is a no-op when BuildConfig.SENTRY_DSN is blank, which is the case for the `fdroid`
         // flavor (see app/build.gradle.kts), so F-Droid builds remain completely telemetry-free.
@@ -85,14 +115,12 @@ class App : Application() {
             )
         }
 
-        context = applicationContext
         packageInfo =
             packageManager.run {
                 if (Build.VERSION.SDK_INT >= 33)
                     getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
                 else getPackageInfo(packageName, 0)
             }
-        applicationScope = CoroutineScope(SupervisorJob())
         DynamicColors.applyToActivitiesIfAvailable(this)
 
         clipboard = getSystemService()!!

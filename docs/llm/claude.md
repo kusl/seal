@@ -2878,3 +2878,169 @@ If you'd like, I can also wire up Compose navigation breadcrumbs (adds `sentry-c
 
 99
 39
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I made some changes and now the app closes as soon as I try to open it. Please review the dump and the sentry error, fix all defects, and give me full files for all files that need to change
+
+I have the full exception chain now. Let me confirm the remaining detail and then dig into the actual source.Crash chain is now fully resolved. Let me locate the relevant source files in the dump.I can see the bug forming. In `onCreate()`, `initSentry()` is called at the top (right after `MMKV.initialize`), but `context = applicationContext` happens further down at line 4497. Let me confirm the transitive chain by reading the two classes the crash walks through.Confirmed: `DatabaseUtil`'s static initializer reads `App.context` at line 34468 (`Room.databaseBuilder(context, ...)`) **and** uses `App.applicationScope` in its `init` block and `db`/`dao` setup. Both are companion `lateinit var`s assigned *after* `initSentry()`. Let me verify what in `PreferenceUtil`'s own static init pulls in `DatabaseUtil`.Root cause fully confirmed. At `PreferenceUtil.kt` line 346–347:
+
+```kotlin
+val templateListStateFlow: StateFlow<List<CommandTemplate>> =
+    DatabaseUtil.getTemplateFlow()
+        .stateIn(applicationScope, started = SharingStarted.Eagerly, emptyList())
+```
+
+So `PreferenceUtil`'s static init touches both `DatabaseUtil` (→ `Room.databaseBuilder(context, …)` → `App.context`) **and** `App.applicationScope` directly. Both are companion `lateinit var`s assigned *after* `initSentry()`. Let me read the rest of `App.kt` so I can produce a faithful full-file replacement.Let me grab the small truncated piece at the top of `initSentry()` so I reproduce it exactly.I now have the complete picture and every line of `App.kt`. Let me write the corrected file.
+
+## Diagnosis
+
+The crash is a launch-time `NoClassDefFoundError: PreferenceUtil`, and the Sentry chain decodes cleanly to a single root cause — an **initialization-order regression in `App.onCreate()`**:
+
+1. `onCreate()` calls `initSentry()` **first** (right after `MMKV.initialize`).
+2. Inside the `SentryAndroid.init { … }` options lambda, the code reads `YT_DLP_VERSION.getString()` to set a tag.
+3. That first preference access forces `PreferenceUtil`'s static initializer, whose eager top-level property runs `DatabaseUtil.getTemplateFlow().stateIn(applicationScope, …)`.
+4. That one line needs **both** companion `lateinit var`s: `DatabaseUtil` builds Room with `Room.databaseBuilder(context, …)` → needs `App.context`; and `.stateIn(applicationScope, …)` → needs `App.applicationScope`.
+5. But `context` and `applicationScope` are assigned **later** in `onCreate()`, *after* `initSentry()`.
+
+Result: `UninitializedPropertyAccessException` ("lateinit property context has not been initialized") → `ExceptionInInitializerError` → `NoClassDefFoundError(PreferenceUtil)` → dead on launch.
+
+The line numbers line up exactly: trace `App.onCreate:72` = the `initSentry()` call, `:161` = `SentryAndroid.init`, `:174` = the `YT_DLP_VERSION.getString()` line, `PreferenceUtil:346` = the `templateListStateFlow` initializer, `DatabaseUtil:19` = `Room.databaseBuilder(context,…)`, `App$Companion.getContext:433` = the `lateinit var context` access.
+
+**Fix:** move the three cheap, dependency-free assignments `initSentry()` transitively relies on — `context`, `applicationScope`, and `MMKV.initialize` — *above* `initSentry()`. Sentry still initializes as early as is correct (before the heavy youtube-dl/ffmpeg/aria2c init), so your ANR/crash coverage goal is preserved. Nothing else changes; `PreferenceUtil`/`DatabaseUtil` are correct as-is once the ordering contract is honored, so I'm not touching them (no-regression principle).Let me verify that the only differences from your current file are the intended `onCreate()` reorder — nothing else drifted.The code-level diff is exactly the intended change: the two `lateinit` assignments relocated upward, with no other code touched. Let me view the final `onCreate()` in the output file to confirm the real on-disk ordering (`context` → `applicationScope` → `MMKV.initialize` → `initSentry`).Confirmed on disk: `super.onCreate()` → `context` → `applicationScope` → `MMKV.initialize` → `initSentry()`. That's the fix.
+
+## What changed and why
+
+Only one file needed to change: **`App.kt`**. The single defect is the launch crash, and it's purely an ordering regression introduced when `initSentry()` was moved to the top of `onCreate()`.
+
+The mechanism, end to end: your Sentry options lambda sets a `yt_dlp_version` tag by calling `YT_DLP_VERSION.getString()`. That first preference read is also the *first time anything touches* `PreferenceUtil`, which triggers its static initializer. `PreferenceUtil`'s static init isn't passive — it eagerly evaluates `templateListStateFlow = DatabaseUtil.getTemplateFlow().stateIn(applicationScope, …)`. That one expression reaches into **both** companion `lateinit var`s: `DatabaseUtil.getTemplateFlow()` forces `DatabaseUtil`'s static init, which builds Room via `Room.databaseBuilder(context, …)` (needs `context`), and the `.stateIn(applicationScope, …)` needs `applicationScope`. Both were still unset at that point, so the JVM threw `UninitializedPropertyAccessException` → wrapped as `ExceptionInInitializerError` → surfaced as `NoClassDefFoundError: PreferenceUtil`. (The third frame's type was mislabeled `coil.network.HttpException` by the ProGuard mapping, but its message — "lateinit property context has not been initialized" — is the reliable part.)
+
+The fix moves the three cheap, dependency-free prerequisites — `context`, `applicationScope`, and `MMKV.initialize` — above `initSentry()`. Sentry still initializes before the heavyweight youtube-dl/ffmpeg/aria2c block, so your goal of having ANR/crash coverage live during that init is fully preserved.
+
+Why this is safe with zero behavioral regression:
+
+- The code-level diff (verified with comments stripped) is *only* those two assignments relocated upward — no other statement changed.
+- `applicationContext` is valid immediately after `attachBaseContext`, so assigning `context` first is always sound. `CoroutineScope(SupervisorJob())` just constructs a scope object; it launches nothing, so moving it earlier starts no work earlier.
+- `startKoin` doesn't read either field (the `DownloaderV2Impl(androidContext())` single is lazy, not `createdAtStart`), so placing them before `startKoin` is harmless. `packageInfo` is *not* used by the Sentry lambda, so I left it exactly where it was to keep the change minimal.
+- The Round-3 service-binding code (synchronous `isBound`, `serviceLock`, leak-safe `bindService`/`unbindService`) is byte-for-byte unchanged.
+
+I deliberately did **not** refactor `PreferenceUtil`/`DatabaseUtil` (e.g. making `DatabaseUtil.db` lazy). Their eager-`object` design is upstream behavior and works correctly once the init contract is honored; changing it would risk the kind of subtle regression you want to avoid. Instead I documented the ordering invariant directly in `onCreate()` so a future edit at the top of the method — or a new preference read inside the Sentry lambda — won't silently reintroduce this.
+
+One note for your dependency-upgrade backlog: this whole class lives or dies on Kotlin's static-init order, which is exactly the kind of thing that shifts subtly under compiler/R8 changes — worth keeping the build flavor that disables Sentry (F-Droid) in mind as your canary, since it skips this entire chain.
