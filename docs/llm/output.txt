@@ -1,4 +1,4 @@
-kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
+kushal@fedora:~/Videos/dl$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
 mine
 origin
 
@@ -19,9 +19,9 @@ sys	0m0.002s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.239s
-user	0m0.009s
-sys	0m0.011s
+real	0m0.230s
+user	0m0.011s
+sys	0m0.010s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -33,35 +33,35 @@ sys	0m0.011s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.724s
-user	0m0.005s
-sys	0m0.010s
+real	0m0.596s
+user	0m0.009s
+sys	0m0.008s
 
-real	0m0.128s
-user	0m0.016s
-sys	0m0.009s
+real	0m0.118s
+user	0m0.009s
+sys	0m0.016s
 On branch main
-Your branch is ahead of 'origin/main' by 20 commits.
+Your branch is ahead of 'origin/main' by 22 commits.
   (use "git push" to publish your local commits)
 
 nothing to commit, working tree clean
 
-real	0m0.006s
-user	0m0.001s
-sys	0m0.005s
-Enumerating objects: 42, done.
-Counting objects: 100% (42/42), done.
+real	0m0.005s
+user	0m0.002s
+sys	0m0.003s
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (20/20), done.
-Writing objects: 100% (26/26), 48.22 KiB | 16.07 MiB/s, done.
-Total 26 (delta 13), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (13/13), completed with 8 local objects.
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (5/5), 908 bytes | 908.00 KiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
 To github.com:kusl/seal.git
-   b66526f0..ae91832e  main -> main
+   ceb3dd4f..9a911bc6  main -> main
 
-real	0m3.444s
-user	0m0.016s
-sys	0m0.012s
+real	0m1.374s
+user	0m0.008s
+sys	0m0.011s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -73,9 +73,9 @@ sys	0m0.012s
     main pushes to main (up to date)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.517s
+real	0m0.537s
 user	0m0.008s
-sys	0m0.006s
+sys	0m0.008s
 ==============================================
   Generating Clean Project Export
 ==============================================
@@ -449,11 +449,11 @@ Processed: translations/README-zh_Hant.md
 
 Export Complete: docs/llm/dump.txt
 
-real	0m3.612s
-user	0m1.969s
-sys	0m2.272s
+real	0m3.637s
+user	0m1.892s
+sys	0m2.403s
 On branch main
-Your branch is ahead of 'origin/main' by 20 commits.
+Your branch is ahead of 'origin/main' by 22 commits.
   (use "git push" to publish your local commits)
 
 Changes not staged for commit:
@@ -463,16 +463,16 @@ Changes not staged for commit:
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
-real	0m0.006s
-user	0m0.000s
-sys	0m0.005s
+real	0m0.020s
+user	0m0.012s
+sys	0m0.008s
 warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
 
-real	0m0.036s
-user	0m0.028s
-sys	0m0.008s
+real	0m0.038s
+user	0m0.031s
+sys	0m0.006s
 On branch main
-Your branch is ahead of 'origin/main' by 20 commits.
+Your branch is ahead of 'origin/main' by 22 commits.
   (use "git push" to publish your local commits)
 
 Changes to be committed:
@@ -480,11 +480,11 @@ Changes to be committed:
 	modified:   docs/llm/dump.txt
 
 
-real	0m0.021s
-user	0m0.012s
-sys	0m0.008s
-[main ceb3dd4f] run dump
- 1 file changed, 128 insertions(+), 28 deletions(-)
+real	0m0.020s
+user	0m0.015s
+sys	0m0.005s
+[main c78bdebe] run dump
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 real	0m0.039s
 user	0m0.025s
@@ -493,13 +493,13 @@ Enumerating objects: 9, done.
 Counting objects: 100% (9/9), done.
 Delta compression using up to 16 threads
 Compressing objects: 100% (4/4), done.
-Writing objects: 100% (5/5), 3.41 KiB | 166.00 KiB/s, done.
+Writing objects: 100% (5/5), 505 bytes | 505.00 KiB/s, done.
 Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
 remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
 To github.com:kusl/seal.git
-   ae91832e..ceb3dd4f  main -> main
+   9a911bc6..c78bdebe  main -> main
 
-real	0m1.654s
-user	0m0.034s
-sys	0m0.026s
+real	0m1.519s
+user	0m0.024s
+sys	0m0.015s
 kushal@fedora:~/src/kotlin/Seal$ 
