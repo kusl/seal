@@ -25,3 +25,6 @@ keystore.properties
 *.keystore
 *.jks
 android.keystore.base64
+# Sentry — auth token / CLI config (the wizard would also add these). Never commit them.
+sentry.properties
+.sentryclirc

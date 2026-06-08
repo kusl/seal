@@ -39,6 +39,13 @@ koin = "4.0.0"
 
 ktfmt = "0.20.1"
 
+# Sentry SDK (io.sentry:sentry-android, the core + NDK umbrella) and the Sentry Android Gradle
+# plugin. The plugin (6.10.0) bundles/targets this SDK version. If you ever add more io.sentry:*
+# artifacts, keep them all on `sentry` (or adopt io.sentry:sentry-bom) so the SDK doesn't trip its
+# deliberate "mixed versions" init crash.
+sentry = "8.43.1"
+sentryGradlePlugin = "6.10.0"
+
 [libraries]
 
 
@@ -110,6 +117,8 @@ youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", n
 
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
@@ -120,6 +129,7 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
 ktfmt-gradle = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentryGradlePlugin" }
 
 
 [bundles]
