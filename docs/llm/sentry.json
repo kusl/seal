@@ -1,0 +1,1567 @@
+{
+    "event_id": "b31c1c97b6554974a47ba3cc10c275e9",
+    "project": 4511529508995152,
+    "release": "com.junkfood.seal@2.0.0-alpha.5.20260608.1303+29682063",
+    "dist": "29682063",
+    "platform": "java",
+    "message": "",
+    "datetime": "2026-06-08T15:45:36.717000+00:00",
+    "tags": [
+        [
+            "abi",
+            "arm64-v8a"
+        ],
+        [
+            "device",
+            "moto g stylus - 2025"
+        ],
+        [
+            "device.class",
+            "2"
+        ],
+        [
+            "device.family",
+            "moto"
+        ],
+        [
+            "environment",
+            "generic"
+        ],
+        [
+            "flavor",
+            "generic"
+        ],
+        [
+            "installerStore",
+            "dev.imranr.obtainium.fdroid"
+        ],
+        [
+            "isSideLoaded",
+            "false"
+        ],
+        [
+            "level",
+            "fatal"
+        ],
+        [
+            "mechanism",
+            "chained"
+        ],
+        [
+            "os",
+            "Android 16"
+        ],
+        [
+            "os.build",
+            "W1VAS36.62-22-16-1-7"
+        ],
+        [
+            "os.name",
+            "Android"
+        ],
+        [
+            "os.rooted",
+            "no"
+        ],
+        [
+            "dist",
+            "29682063"
+        ],
+        [
+            "release",
+            "com.junkfood.seal@2.0.0-alpha.5.20260608.1303+29682063"
+        ],
+        [
+            "user",
+            "id:36534973cc934bc7b1a99ec5d14ab69b"
+        ]
+    ],
+    "_dsc": {
+        "environment": "generic",
+        "public_key": "765791294bb0c81b06d4784a8913ba1c",
+        "release": "com.junkfood.seal@2.0.0-alpha.5.20260608.1303+29682063",
+        "replay_id": null,
+        "sample_rand": "0.1883569939322167",
+        "trace_id": "ea70c206e4ea43ae8f39c17b8a58bf07",
+        "transaction": null
+    },
+    "_metrics": {
+        "bytes.ingested.event": 17652,
+        "bytes.stored.event": 60629
+    },
+    "breadcrumbs": {
+        "values": [
+            {
+                "timestamp": 1780933536.708,
+                "type": "default",
+                "category": "Logcat",
+                "level": "info",
+                "message": "[init] declare Android Context",
+                "data": {
+                    "tag": "[Koin]"
+                }
+            },
+            {
+                "timestamp": 1780933536.713,
+                "type": "default",
+                "category": "Logcat",
+                "level": "info",
+                "message": "Started 7 definitions in 0.072 ms",
+                "data": {
+                    "tag": "[Koin]"
+                }
+            },
+            {
+                "timestamp": 1780933536.715,
+                "type": "system",
+                "category": "device.event",
+                "level": "info",
+                "data": {
+                    "action": "BATTERY_CHANGED",
+                    "charging": true,
+                    "level": 80
+                }
+            }
+        ]
+    },
+    "contexts": {
+        "app": {
+            "app_start_time": "2026-06-08T15:45:36.452Z",
+            "app_identifier": "com.junkfood.seal",
+            "app_name": "Seal",
+            "app_version": "2.0.0-alpha.5.20260608.1303",
+            "app_build": "29682065",
+            "is_split_apks": false,
+            "permissions": {
+                "ACCESS_NETWORK_STATE": "granted",
+                "DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION": "granted",
+                "FOREGROUND_SERVICE": "granted",
+                "FOREGROUND_SERVICE_SPECIAL_USE": "granted",
+                "INTERNET": "granted",
+                "MANAGE_EXTERNAL_STORAGE": "not_granted",
+                "POST_NOTIFICATIONS": "not_granted",
+                "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS": "granted",
+                "REQUEST_INSTALL_PACKAGES": "not_granted"
+            },
+            "type": "app"
+        },
+        "device": {
+            "family": "moto",
+            "model": "moto g stylus - 2025",
+            "model_id": "W1VAS36.62-22-16-1-7",
+            "battery_level": 80.0,
+            "orientation": "portrait",
+            "manufacturer": "motorola",
+            "brand": "motorola",
+            "screen_width_pixels": 1220,
+            "screen_height_pixels": 2712,
+            "screen_density": 2.8125,
+            "screen_dpi": 450,
+            "online": true,
+            "charging": true,
+            "low_memory": false,
+            "simulator": false,
+            "memory_size": 7847014400,
+            "free_memory": 2353438720,
+            "storage_size": 114660716544,
+            "free_storage": 59968929792,
+            "boot_time": "2026-06-08T05:44:20.964Z",
+            "timezone": "America/New_York",
+            "locale": "en_US",
+            "processor_count": 8,
+            "processor_frequency": 2400,
+            "archs": [
+                "arm64-v8a"
+            ],
+            "battery_temperature": 31.0,
+            "chipset": "QTI SM6475",
+            "connection_type": "wifi",
+            "id": "36534973cc934bc7b1a99ec5d14ab69b",
+            "type": "device"
+        },
+        "os": {
+            "os": "Android 16",
+            "name": "Android",
+            "version": "16",
+            "build": "W1VAS36.62-22-16-1-7",
+            "kernel_version": "6.6.87-android15-8-g88d70c0b44bf-ab14541233-4k",
+            "rooted": false,
+            "type": "os"
+        },
+        "trace": {
+            "trace_id": "ea70c206e4ea43ae8f39c17b8a58bf07",
+            "span_id": "8cfc710f941041e0",
+            "op": "default",
+            "status": "unknown",
+            "origin": "manual",
+            "data": {
+                "thread.name": "main",
+                "thread.id": "19261"
+            },
+            "type": "trace"
+        }
+    },
+    "culprit": "com.junkfood.seal.App$Companion in getContext",
+    "debug_meta": {
+        "images": [
+            {
+                "uuid": "b303d10e-a852-32be-996c-eac554e3cd51",
+                "type": "proguard"
+            }
+        ]
+    },
+    "environment": "generic",
+    "exception": {
+        "values": [
+            {
+                "type": "NoClassDefFoundError",
+                "value": "com.junkfood.seal.util.PreferenceUtil",
+                "module": "java.lang",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "com.android.internal.os.ZygoteInit",
+                            "filename": "ZygoteInit.java",
+                            "abs_path": "ZygoteInit.java",
+                            "lineno": 953,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "system"
+                            }
+                        },
+                        {
+                            "function": "run",
+                            "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                            "filename": "RuntimeInit.java",
+                            "abs_path": "RuntimeInit.java",
+                            "lineno": 593,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "invoke",
+                            "module": "java.lang.reflect.Method",
+                            "filename": "Method.java",
+                            "abs_path": "Method.java",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "main",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 9345,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loop",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 430,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loopOnce",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 304,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "dispatchMessage",
+                            "module": "android.os.Handler",
+                            "filename": "Handler.java",
+                            "abs_path": "Handler.java",
+                            "lineno": 115,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "handleMessage",
+                            "module": "android.app.ActivityThread$H",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 2689,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "-$$Nest$mhandleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "lineno": 0,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "handleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 8059,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "callApplicationOnCreate",
+                            "module": "android.app.Instrumentation",
+                            "filename": "Instrumentation.java",
+                            "abs_path": "Instrumentation.java",
+                            "lineno": 1381,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "onCreate",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 122,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        }
+                    ]
+                },
+                "raw_stacktrace": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "com.android.internal.os.ZygoteInit",
+                            "filename": "ZygoteInit.java",
+                            "abs_path": "ZygoteInit.java",
+                            "lineno": 953,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "system"
+                            }
+                        },
+                        {
+                            "function": "run",
+                            "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                            "filename": "RuntimeInit.java",
+                            "abs_path": "RuntimeInit.java",
+                            "lineno": 593,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "invoke",
+                            "module": "java.lang.reflect.Method",
+                            "filename": "Method.java",
+                            "abs_path": "Method.java",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "main",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 9345,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loop",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 430,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loopOnce",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 304,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "dispatchMessage",
+                            "module": "android.os.Handler",
+                            "filename": "Handler.java",
+                            "abs_path": "Handler.java",
+                            "lineno": 115,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "handleMessage",
+                            "module": "android.app.ActivityThread$H",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 2689,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "-$$Nest$mhandleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "lineno": 0,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "handleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 8059,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "callApplicationOnCreate",
+                            "module": "android.app.Instrumentation",
+                            "filename": "Instrumentation.java",
+                            "abs_path": "Instrumentation.java",
+                            "lineno": 1381,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "onCreate",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 199,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        }
+                    ]
+                },
+                "thread_id": 2,
+                "mechanism": {
+                    "type": "UncaughtExceptionHandler",
+                    "handled": false,
+                    "exception_id": 0
+                },
+                "raw_module": "java.lang",
+                "raw_type": "NoClassDefFoundError",
+                "raw_value": "com.junkfood.seal.util.PreferenceUtil"
+            },
+            {
+                "type": "ExceptionInInitializerError",
+                "module": "java.lang",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "com.android.internal.os.ZygoteInit",
+                            "filename": "ZygoteInit.java",
+                            "abs_path": "ZygoteInit.java",
+                            "lineno": 953,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "system"
+                            }
+                        },
+                        {
+                            "function": "run",
+                            "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                            "filename": "RuntimeInit.java",
+                            "abs_path": "RuntimeInit.java",
+                            "lineno": 593,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "invoke",
+                            "module": "java.lang.reflect.Method",
+                            "filename": "Method.java",
+                            "abs_path": "Method.java",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "main",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 9345,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loop",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 430,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loopOnce",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 304,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "dispatchMessage",
+                            "module": "android.os.Handler",
+                            "filename": "Handler.java",
+                            "abs_path": "Handler.java",
+                            "lineno": 115,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "handleMessage",
+                            "module": "android.app.ActivityThread$H",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 2689,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "-$$Nest$mhandleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "lineno": 0,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "handleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 8059,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "callApplicationOnCreate",
+                            "module": "android.app.Instrumentation",
+                            "filename": "Instrumentation.java",
+                            "abs_path": "Instrumentation.java",
+                            "lineno": 1381,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "onCreate",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 72,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "initSentry",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 161,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "init",
+                            "module": "io.sentry.android.core.SentryAndroid",
+                            "filename": "SentryAndroid.java",
+                            "abs_path": "SentryAndroid.java",
+                            "lineno": 84,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": 1,
+                                "category": "framework",
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "onCreate$lambda$6$lambda$5",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 84,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "initSentry$lambda$10",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 174,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "<clinit>",
+                            "module": "com.junkfood.seal.util.PreferenceUtil",
+                            "filename": "PreferenceUtil.kt",
+                            "abs_path": "PreferenceUtil.kt",
+                            "lineno": 346,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        }
+                    ]
+                },
+                "raw_stacktrace": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "com.android.internal.os.ZygoteInit",
+                            "filename": "ZygoteInit.java",
+                            "abs_path": "ZygoteInit.java",
+                            "lineno": 953,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "system"
+                            }
+                        },
+                        {
+                            "function": "run",
+                            "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                            "filename": "RuntimeInit.java",
+                            "abs_path": "RuntimeInit.java",
+                            "lineno": 593,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "invoke",
+                            "module": "java.lang.reflect.Method",
+                            "filename": "Method.java",
+                            "abs_path": "Method.java",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "main",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 9345,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loop",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 430,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loopOnce",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 304,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "dispatchMessage",
+                            "module": "android.os.Handler",
+                            "filename": "Handler.java",
+                            "abs_path": "Handler.java",
+                            "lineno": 115,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "handleMessage",
+                            "module": "android.app.ActivityThread$H",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 2689,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "-$$Nest$mhandleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "lineno": 0,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "handleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 8059,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "callApplicationOnCreate",
+                            "module": "android.app.Instrumentation",
+                            "filename": "Instrumentation.java",
+                            "abs_path": "Instrumentation.java",
+                            "lineno": 1381,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "onCreate",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 55,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "configure",
+                            "module": "androidx.compose.ui.platform.ViewCompositionStrategy$DisposeOnDetachedFromWindowOrReleasedFromPool$$ExternalSyntheticLambda0",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 60,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "<clinit>",
+                            "module": "com.junkfood.seal.util.PreferenceUtil",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 27,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        }
+                    ]
+                },
+                "thread_id": 2,
+                "mechanism": {
+                    "type": "chained",
+                    "exception_id": 1,
+                    "parent_id": 0
+                },
+                "raw_module": "java.lang",
+                "raw_type": "ExceptionInInitializerError"
+            },
+            {
+                "type": "HttpException",
+                "value": "lateinit property context has not been initialized",
+                "module": "coil.network",
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "com.android.internal.os.ZygoteInit",
+                            "filename": "ZygoteInit.java",
+                            "abs_path": "ZygoteInit.java",
+                            "lineno": 953,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "system"
+                            }
+                        },
+                        {
+                            "function": "run",
+                            "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                            "filename": "RuntimeInit.java",
+                            "abs_path": "RuntimeInit.java",
+                            "lineno": 593,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "invoke",
+                            "module": "java.lang.reflect.Method",
+                            "filename": "Method.java",
+                            "abs_path": "Method.java",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "main",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 9345,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loop",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 430,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loopOnce",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 304,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "dispatchMessage",
+                            "module": "android.os.Handler",
+                            "filename": "Handler.java",
+                            "abs_path": "Handler.java",
+                            "lineno": 115,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "handleMessage",
+                            "module": "android.app.ActivityThread$H",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 2689,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "-$$Nest$mhandleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "lineno": 0,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "handleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 8059,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "callApplicationOnCreate",
+                            "module": "android.app.Instrumentation",
+                            "filename": "Instrumentation.java",
+                            "abs_path": "Instrumentation.java",
+                            "lineno": 1381,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "onCreate",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 72,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "initSentry",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 161,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "init",
+                            "module": "io.sentry.android.core.SentryAndroid",
+                            "filename": "SentryAndroid.java",
+                            "abs_path": "SentryAndroid.java",
+                            "lineno": 84,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": 1,
+                                "category": "framework",
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "onCreate$lambda$6$lambda$5",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 84,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "initSentry$lambda$10",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 174,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "<clinit>",
+                            "module": "com.junkfood.seal.util.PreferenceUtil",
+                            "filename": "PreferenceUtil.kt",
+                            "abs_path": "PreferenceUtil.kt",
+                            "lineno": 346,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "<clinit>",
+                            "module": "com.junkfood.seal.util.DatabaseUtil",
+                            "filename": "DatabaseUtil.kt",
+                            "abs_path": "DatabaseUtil.kt",
+                            "lineno": 19,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "getContext",
+                            "module": "com.junkfood.seal.App$Companion",
+                            "filename": "App.kt",
+                            "abs_path": "App.kt",
+                            "lineno": 433,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        }
+                    ]
+                },
+                "raw_stacktrace": {
+                    "frames": [
+                        {
+                            "function": "main",
+                            "module": "com.android.internal.os.ZygoteInit",
+                            "filename": "ZygoteInit.java",
+                            "abs_path": "ZygoteInit.java",
+                            "lineno": 953,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "system"
+                            }
+                        },
+                        {
+                            "function": "run",
+                            "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                            "filename": "RuntimeInit.java",
+                            "abs_path": "RuntimeInit.java",
+                            "lineno": 593,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "invoke",
+                            "module": "java.lang.reflect.Method",
+                            "filename": "Method.java",
+                            "abs_path": "Method.java",
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "main",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 9345,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loop",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 430,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "loopOnce",
+                            "module": "android.os.Looper",
+                            "filename": "Looper.java",
+                            "abs_path": "Looper.java",
+                            "lineno": 304,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "indirection"
+                            }
+                        },
+                        {
+                            "function": "dispatchMessage",
+                            "module": "android.os.Handler",
+                            "filename": "Handler.java",
+                            "abs_path": "Handler.java",
+                            "lineno": 115,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "handleMessage",
+                            "module": "android.app.ActivityThread$H",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 2689,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "threadbase"
+                            }
+                        },
+                        {
+                            "function": "-$$Nest$mhandleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "lineno": 0,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "handleBindApplication",
+                            "module": "android.app.ActivityThread",
+                            "filename": "ActivityThread.java",
+                            "abs_path": "ActivityThread.java",
+                            "lineno": 8059,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "callApplicationOnCreate",
+                            "module": "android.app.Instrumentation",
+                            "filename": "Instrumentation.java",
+                            "abs_path": "Instrumentation.java",
+                            "lineno": 1381,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "internals"
+                            }
+                        },
+                        {
+                            "function": "onCreate",
+                            "module": "com.junkfood.seal.App",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 55,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "configure",
+                            "module": "androidx.compose.ui.platform.ViewCompositionStrategy$DisposeOnDetachedFromWindowOrReleasedFromPool$$ExternalSyntheticLambda0",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 60,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1,
+                                "category": "std"
+                            }
+                        },
+                        {
+                            "function": "<clinit>",
+                            "module": "com.junkfood.seal.util.PreferenceUtil",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 27,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "<clinit>",
+                            "module": "com.junkfood.seal.util.DatabaseUtil",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 12,
+                            "in_app": true,
+                            "data": {
+                                "client_in_app": true
+                            }
+                        },
+                        {
+                            "function": "getContext",
+                            "module": "coil.ImageLoaders",
+                            "filename": "SourceFile",
+                            "abs_path": "SourceFile",
+                            "lineno": 8,
+                            "in_app": false,
+                            "data": {
+                                "orig_in_app": -1
+                            }
+                        }
+                    ]
+                },
+                "thread_id": 2,
+                "mechanism": {
+                    "type": "chained",
+                    "exception_id": 2,
+                    "parent_id": 1
+                },
+                "raw_module": "coil.network",
+                "raw_type": "HttpException"
+            }
+        ]
+    },
+    "fingerprint": [
+        "{{ default }}"
+    ],
+    "grouping_config": {
+        "enhancements": "KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA#KLUv_SAd6QAAkwORuGFsbC1wbGF0Zm9ybXM6MjAyNi0wMS0yMJA",
+        "id": "newstyle:2026-01-20"
+    },
+    "hashes": [
+        "183c91875095d6405f9b6970f6b1fe34",
+        "92ddf0efa4602b3af01fb62e0ff6e34a"
+    ],
+    "ingest_path": [
+        {
+            "version": "26.5.2",
+            "public_key": "7pLPdtCQBMLtodCJ3yOtI9MDBUWfX0k5eDa4ZP4CX6A"
+        }
+    ],
+    "key_id": "1163127",
+    "level": "fatal",
+    "location": "App.kt",
+    "logger": "",
+    "main_exception_id": 0,
+    "metadata": {
+        "filename": "App.kt",
+        "function": "getContext",
+        "in_app_frame_mix": "mixed",
+        "type": "NoClassDefFoundError",
+        "value": "com.junkfood.seal.util.PreferenceUtil"
+    },
+    "modules": {
+        "androidx.activity:activity": "1.10.1",
+        "androidx.activity:activity-compose": "1.10.1",
+        "androidx.activity:activity-ktx": "1.10.1",
+        "androidx.annotation:annotation-experimental": "1.4.1",
+        "androidx.annotation:annotation-jvm": "1.9.1",
+        "androidx.appcompat:appcompat": "1.7.0",
+        "androidx.appcompat:appcompat-resources": "1.7.0",
+        "androidx.arch.core:core-common": "2.2.0",
+        "androidx.arch.core:core-runtime": "2.2.0",
+        "androidx.autofill:autofill": "1.0.0",
+        "androidx.cardview:cardview": "1.0.0",
+        "androidx.collection:collection-jvm": "1.5.0",
+        "androidx.collection:collection-ktx": "1.5.0",
+        "androidx.compose.animation:animation-android": "1.8.0-rc02",
+        "androidx.compose.animation:animation-core-android": "1.8.0-rc02",
+        "androidx.compose.foundation:foundation-android": "1.8.0-rc02",
+        "androidx.compose.foundation:foundation-layout-android": "1.8.0-rc02",
+        "androidx.compose.material3:material3-android": "1.4.0-alpha11",
+        "androidx.compose.material3:material3-window-size-class-android": "1.4.0-alpha11",
+        "androidx.compose.material:material-android": "1.8.0-rc02",
+        "androidx.compose.material:material-icons-core-android": "1.7.8",
+        "androidx.compose.material:material-icons-extended-android": "1.7.8",
+        "androidx.compose.material:material-ripple-android": "1.8.0-rc02",
+        "androidx.compose.runtime:runtime-android": "1.8.0-rc02",
+        "androidx.compose.runtime:runtime-saveable-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-geometry-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-graphics-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-text-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-tooling-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-tooling-data-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-tooling-preview-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-unit-android": "1.8.0-rc02",
+        "androidx.compose.ui:ui-util-android": "1.8.0-rc02",
+        "androidx.concurrent:concurrent-futures": "1.1.0",
+        "androidx.constraintlayout:constraintlayout": "2.0.1",
+        "androidx.constraintlayout:constraintlayout-compose-android": "1.1.0",
+        "androidx.constraintlayout:constraintlayout-core": "1.1.0",
+        "androidx.constraintlayout:constraintlayout-solver": "2.0.1",
+        "androidx.coordinatorlayout:coordinatorlayout": "1.1.0",
+        "androidx.core:core": "1.15.0",
+        "androidx.core:core-ktx": "1.15.0",
+        "androidx.core:core-viewtree": "1.0.0",
+        "androidx.cursoradapter:cursoradapter": "1.0.0",
+        "androidx.customview:customview": "1.1.0",
+        "androidx.customview:customview-poolingcontainer": "1.0.0",
+        "androidx.documentfile:documentfile": "1.0.0",
+        "androidx.drawerlayout:drawerlayout": "1.1.1",
+        "androidx.dynamicanimation:dynamicanimation": "1.0.0",
+        "androidx.emoji2:emoji2": "1.4.0",
+        "androidx.emoji2:emoji2-views-helper": "1.4.0",
+        "androidx.exifinterface:exifinterface": "1.3.6",
+        "androidx.fragment:fragment": "1.8.3",
+        "androidx.fragment:fragment-ktx": "1.8.3",
+        "androidx.graphics:graphics-path": "1.0.1",
+        "androidx.graphics:graphics-shapes-android": "1.0.1",
+        "androidx.interpolator:interpolator": "1.0.0",
+        "androidx.legacy:legacy-support-core-utils": "1.0.0",
+        "androidx.lifecycle:lifecycle-common-java8": "2.8.7",
+        "androidx.lifecycle:lifecycle-common-jvm": "2.8.7",
+        "androidx.lifecycle:lifecycle-livedata": "2.8.7",
+        "androidx.lifecycle:lifecycle-livedata-core": "2.8.7",
+        "androidx.lifecycle:lifecycle-livedata-core-ktx": "2.8.7",
+        "androidx.lifecycle:lifecycle-process": "2.8.7",
+        "androidx.lifecycle:lifecycle-runtime-android": "2.8.7",
+        "androidx.lifecycle:lifecycle-runtime-compose-android": "2.8.7",
+        "androidx.lifecycle:lifecycle-runtime-ktx-android": "2.8.7",
+        "androidx.lifecycle:lifecycle-viewmodel": "2.8.7",
+        "androidx.lifecycle:lifecycle-viewmodel-android": "2.8.7",
+        "androidx.lifecycle:lifecycle-viewmodel-compose-android": "2.8.7",
+        "androidx.lifecycle:lifecycle-viewmodel-ktx": "2.8.7",
+        "androidx.lifecycle:lifecycle-viewmodel-savedstate": "2.8.7",
+        "androidx.loader:loader": "1.0.0",
+        "androidx.localbroadcastmanager:localbroadcastmanager": "1.0.0",
+        "androidx.navigation:navigation-common": "2.8.9",
+        "androidx.navigation:navigation-common-ktx": "2.8.9",
+        "androidx.navigation:navigation-compose": "2.8.9",
+        "androidx.navigation:navigation-runtime": "2.8.9",
+        "androidx.navigation:navigation-runtime-ktx": "2.8.9",
+        "androidx.print:print": "1.0.0",
+        "androidx.profileinstaller:profileinstaller": "1.4.0",
+        "androidx.recyclerview:recyclerview": "1.1.0",
+        "androidx.resourceinspection:resourceinspection-annotation": "1.0.1",
+        "androidx.room:room-common": "2.6.1",
+        "androidx.room:room-ktx": "2.6.1",
+        "androidx.room:room-runtime": "2.6.1",
+        "androidx.savedstate:savedstate": "1.2.1",
+        "androidx.savedstate:savedstate-ktx": "1.2.1",
+        "androidx.sqlite:sqlite": "2.4.0",
+        "androidx.sqlite:sqlite-framework": "2.4.0",
+        "androidx.startup:startup-runtime": "1.1.1",
+        "androidx.tracing:tracing": "1.2.0",
+        "androidx.transition:transition": "1.5.0",
+        "androidx.vectordrawable:vectordrawable": "1.1.0",
+        "androidx.vectordrawable:vectordrawable-animated": "1.1.0",
+        "androidx.versionedparcelable:versionedparcelable": "1.1.1",
+        "androidx.viewpager2:viewpager2": "1.0.0",
+        "androidx.viewpager:viewpager": "1.0.0",
+        "androidx.window:window": "1.0.0",
+        "co.touchlab:stately-concurrency-jvm": "2.1.0",
+        "co.touchlab:stately-concurrent-collections-jvm": "2.1.0",
+        "co.touchlab:stately-strict-jvm": "2.1.0",
+        "com.abovevacant:epitaph": "0.1.1",
+        "com.fasterxml.jackson.core:jackson-annotations": "2.11.1",
+        "com.fasterxml.jackson.core:jackson-core": "2.11.1",
+        "com.fasterxml.jackson.core:jackson-databind": "2.11.1",
+        "com.google.accompanist:accompanist-drawablepainter": "0.32.0",
+        "com.google.accompanist:accompanist-pager": "0.34.0",
+        "com.google.accompanist:accompanist-pager-indicators": "0.34.0",
+        "com.google.accompanist:accompanist-permissions": "0.34.0",
+        "com.google.accompanist:accompanist-webview": "0.34.0",
+        "com.google.android.material:material": "1.12.0",
+        "com.google.errorprone:error_prone_annotations": "2.15.0",
+        "com.google.guava:listenablefuture": "1.0",
+        "com.squareup.okhttp3:okhttp-jvm": "5.0.0-alpha.10",
+        "com.squareup.okio:okio-jvm": "3.6.0",
+        "com.tencent:mmkv": "1.3.12",
+        "commons-io:commons-io": "2.5",
+        "dev.chrisbanes.snapper:snapper": "0.2.2",
+        "io.coil-kt:coil": "2.5.0",
+        "io.coil-kt:coil-base": "2.5.0",
+        "io.coil-kt:coil-compose": "2.5.0",
+        "io.coil-kt:coil-compose-base": "2.5.0",
+        "io.github.junkfood02.youtubedl-android:aria2c": "0.17.3",
+        "io.github.junkfood02.youtubedl-android:common": "0.17.3",
+        "io.github.junkfood02.youtubedl-android:ffmpeg": "0.17.3",
+        "io.github.junkfood02.youtubedl-android:library": "0.17.3",
+        "io.insert-koin:koin-android": "4.0.0",
+        "io.insert-koin:koin-androidx-compose": "4.0.0",
+        "io.insert-koin:koin-compose-jvm": "4.0.0",
+        "io.insert-koin:koin-core-jvm": "4.0.0",
+        "io.insert-koin:koin-core-viewmodel-jvm": "4.0.0",
+        "io.sentry:sentry": "8.43.1",
+        "io.sentry:sentry-android": "8.43.1",
+        "io.sentry:sentry-android-core": "8.43.1",
+        "io.sentry:sentry-android-ndk": "8.43.1",
+        "io.sentry:sentry-android-replay": "8.43.1",
+        "io.sentry:sentry-native-ndk": "0.14.2",
+        "org.apache.commons:commons-compress": "1.12",
+        "org.jetbrains.androidx.core:core-bundle-android": "1.0.0",
+        "org.jetbrains.kotlin:kotlin-stdlib": "2.0.20",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk7": "1.9.24",
+        "org.jetbrains.kotlin:kotlin-stdlib-jdk8": "1.9.24",
+        "org.jetbrains.kotlinx:kotlinx-coroutines-android": "1.7.3",
+        "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm": "1.7.3",
+        "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm": "1.7.2",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm": "1.7.2",
+        "org.jetbrains:annotations": "23.0.0",
+        "org.jspecify:jspecify": "1.0.0"
+    },
+    "nodestore_insert": 1780933543.088518,
+    "received": 1780933538.271409,
+    "sdk": {
+        "name": "sentry.java.android",
+        "version": "8.43.1",
+        "integrations": [
+            "AppStartInstrumentation",
+            "DatabaseInstrumentation",
+            "FileIOInstrumentation",
+            "LogcatInstrumentation",
+            "UncaughtExceptionHandler",
+            "ShutdownHook",
+            "SendCachedEnvelope",
+            "Ndk",
+            "EnvelopeFileObserver",
+            "AppLifecycle",
+            "AnrV2",
+            "AnrProfiling",
+            "ActivityLifecycle",
+            "ActivityBreadcrumbs",
+            "UserInteraction",
+            "AppComponentsBreadcrumbs",
+            "NetworkBreadcrumbs",
+            "SystemEventsBreadcrumbs"
+        ],
+        "packages": [
+            {
+                "name": "maven:io.sentry:sentry",
+                "version": "8.43.1"
+            },
+            {
+                "name": "maven:io.sentry:sentry-android-core",
+                "version": "8.43.1"
+            },
+            {
+                "name": "maven:io.sentry:sentry-android-replay",
+                "version": "8.43.1"
+            },
+            {
+                "name": "gradle",
+                "version": "unknown"
+            },
+            {
+                "name": "maven:io.sentry:sentry-android-ndk",
+                "version": "8.43.1"
+            }
+        ]
+    },
+    "timestamp": 1780933536.717,
+    "title": "NoClassDefFoundError: com.junkfood.seal.util.PreferenceUtil",
+    "type": "error",
+    "user": {
+        "id": "36534973cc934bc7b1a99ec5d14ab69b",
+        "sentry_user": "id:36534973cc934bc7b1a99ec5d14ab69b",
+        "geo": {
+            "country_code": "US",
+            "city": "Newport News",
+            "subdivision": "Virginia",
+            "region": "United States"
+        }
+    },
+    "version": "7"
+}
