@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Mon Jun  8 07:09:32 AM EDT 2026
+Generated: Mon Jun  8 08:35:20 AM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -974,7 +974,7 @@ jobs:
 
 ================================================================================
 FILE: .github/workflows/release.yml
-SIZE: 7.55 KB
+SIZE: 7.62 KB
 ================================================================================
 
 # .github/workflows/release.yml
@@ -1115,6 +1115,8 @@ jobs:
       # We override the version at Gradle level using project properties.
       # This avoids modifying Version.kt (which would dirty the working tree).
       - name: Build signed release APK
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           ./gradlew assembleGenericRelease \
             -PversionNameOverride="${{ steps.version.outputs.name }}" \
@@ -1190,7 +1192,7 @@ jobs:
 
 ================================================================================
 FILE: .gitignore
-SIZE: .45 KB
+SIZE: .57 KB
 ================================================================================
 
 *.iml
@@ -1220,6 +1222,9 @@ keystore.properties
 *.keystore
 *.jks
 android.keystore.base64
+# Sentry — auth token / CLI config (the wizard would also add these). Never commit them.
+sentry.properties
+.sentryclirc
 
 
 ================================================================================
@@ -3008,7 +3013,7 @@ Public License instead of this License.  But first, please read
 
 ================================================================================
 FILE: README.md
-SIZE: 9.97 KB
+SIZE: 12.29 KB
 ================================================================================
 
 <div align="center">
@@ -3182,6 +3187,57 @@ Some of the UI designs and codes are borrowed from [Read You](https://github.com
 </div>
 
 
+
+
+
+
+
+
+
+
+
+## 📡 Crash & ANR Reporting (Sentry)
+
+> [!Important]
+>
+> This is a **fork-specific** change and is **not** part of upstream Seal.
+
+To help diagnose stability problems — in particular a UI freeze / ANR (Application Not Responding)
+that can occur during heavy "copy link → switch app → paste → download" workflows — this build
+integrates [Sentry](https://sentry.io) for automatic crash, ANR, and diagnostic reporting.
+
+**What gets collected and sent**
+
+- **Crashes** (unhandled exceptions and native/NDK crashes) and **ANRs**, including the OS thread
+  dump and a stack-profile (flamegraph) of the main thread at the time of an ANR.
+- **Breadcrumbs**: a trail of recent app events leading up to an issue, including the app's own
+  `Log.*` messages, activity/app lifecycle, and system events.
+- **Performance traces** for database and file I/O operations (used to pinpoint slow work on the
+  main thread).
+- A **screenshot** and a **view-hierarchy snapshot** captured at the moment an error occurs.
+- **Device & app context**: model, manufacturer, OS version, ABI, app version, memory/battery/
+  storage/connectivity state, and the bundled yt-dlp version.
+- Because detailed debugging was the goal, **`sendDefaultPii` is enabled**, which means events may
+  also include data such as your IP address and device name. Screenshots/view hierarchies can
+  contain whatever is on screen at the time (e.g. a URL you were downloading).
+
+**Where it goes:** the `collabs-with-kushal` organization's `seal` project on Sentry's EU servers.
+
+**Offline behavior:** every event is written to the app's cache first, then sent. If the device is
+offline when a crash/ANR happens, the report is stored on disk and delivered automatically on the
+next launch or when connectivity returns — so reports are not lost.
+
+**Builds without telemetry:** the **F-Droid** flavor (`fdroid`) ships with the Sentry DSN blanked
+out, so Sentry is never initialized and **nothing is collected or sent** there.
+
+**How to disable it entirely:** build the `fdroid` flavor, or set the `SENTRY_DSN` value in
+`app/build.gradle.kts` to `""` (App.kt skips initialization when the DSN is blank). The on-device
+crash screen continues to work either way.
+
+**Disabling just the ANR main-thread profiler:** set the
+`io.sentry.anr.profiling.sample-rate` meta-data in `app/src/main/AndroidManifest.xml` to `0.0`.
+
+
 ================================================================================
 FILE: app/.gitignore
 SIZE: 0 KB
@@ -3191,13 +3247,16 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: app/build.gradle.kts
-SIZE: 7.02 KB
+SIZE: 11.98 KB
 ================================================================================
 
 @file:Suppress("UnstableApiUsage")
 
 import com.android.build.api.variant.FilterConfiguration
+import io.sentry.android.gradle.extensions.InstrumentationFeature
+import io.sentry.android.gradle.instrumentation.logcat.LogcatLevel
 import java.io.FileInputStream
+import java.util.EnumSet
 import java.util.Properties
 
 plugins {
@@ -3208,6 +3267,10 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.room)
     alias(libs.plugins.ktfmt.gradle)
+    // Sentry Android Gradle plugin: handles (optional) R8 mapping upload and the bytecode
+    // auto-instrumentation we configure in the `sentry { }` block below. Applied only here in
+    // `:app` (mirroring how ktfmt is applied), so no change to the root build.gradle.kts is needed.
+    alias(libs.plugins.sentry)
 }
 
 val keystorePropertiesFile: File = rootProject.file("keystore.properties")
@@ -3262,6 +3325,16 @@ android {
         versionName = baseVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        // Sentry DSN, exposed to the app as BuildConfig.SENTRY_DSN. A DSN is a *public* client-side
+        // identifier (it only permits sending events, never reading them), so it is safe to commit.
+        // App.kt only initializes Sentry when this is non-blank; the `fdroid` flavor overrides it to
+        // "" below so F-Droid builds ship with zero telemetry.
+        buildConfigField(
+            "String",
+            "SENTRY_DSN",
+            "\"https://765791294bb0c81b06d4784a8913ba1c@o4511444968079360.ingest.de.sentry.io/4511529508995152\"",
+        )
 
         if (splitApks) {
             splits {
@@ -3340,6 +3413,10 @@ android {
         create("fdroid") {
             dimension = "publishChannel"
             versionName = "$baseVersionName-(F-Droid)"
+            // F-Droid forbids non-free network services / tracking. Blank out the DSN so Sentry is
+            // never initialized in this flavor (App.kt no-ops on a blank DSN), and `ignoredFlavors`
+            // in the `sentry { }` block disables the plugin's instrumentation/upload for it too.
+            buildConfigField("String", "SENTRY_DSN", "\"\"")
         }
     }
 
@@ -3361,6 +3438,63 @@ android {
     androidResources { generateLocaleConfig = true }
 
     namespace = "com.junkfood.seal"
+}
+
+// ── Sentry Gradle plugin configuration ────────────────────────────────────────
+//
+// Read the upload auth token from the environment via the Provider API (rather than
+// System.getenv) so the whole block stays compatible with the configuration cache
+// (org.gradle.configuration-cache=true is enabled for this project).
+val sentryAuthToken = providers.environmentVariable("SENTRY_AUTH_TOKEN")
+
+sentry {
+    org.set("collabs-with-kushal")
+    projectName.set("seal")
+    authToken.set(sentryAuthToken)
+
+    // Generate the R8 mapping UUID and embed it into the build, but only *upload* the mapping when
+    // a SENTRY_AUTH_TOKEN is present (i.e. in CI). Local/dry builds therefore never fail for lack
+    // of a token. (This project uses `-dontobfuscate`, so symbol names are intact even without the
+    // mapping; uploading it additionally de-inlines/maps line numbers for the cleanest traces.)
+    includeProguardMapping.set(true)
+    autoUploadProguardMapping.set(sentryAuthToken.map { it.isNotBlank() }.orElse(false))
+
+    // We declare io.sentry:sentry-android explicitly in the version catalog, so turn off the
+    // plugin's auto-installation. This also stops it from silently adding the OkHttp integration
+    // just because the project depends on OkHttp (we intentionally omit OkHttp instrumentation —
+    // see the note below).
+    autoInstallation { enabled.set(false) }
+
+    // Don't instrument or upload anything for the F-Droid flavor.
+    ignoredFlavors.set(listOf("fdroid"))
+
+    // Bytecode auto-instrumentation. This is how we "log everything" without touching any of the
+    // app's source files:
+    //   • DATABASE + FILE_IO  → spans for Room/SQLite and java.io file operations. Besides timing,
+    //                            these power Sentry's server-side "DB/File-I/O on the main thread"
+    //                            ANR root-cause detection.
+    //   • logcat (VERBOSE)    → turns every android.util.Log.* call into a Sentry breadcrumb, so the
+    //                            app's existing logging shows up on the timeline of every event.
+    //
+    // Intentionally NOT enabled:
+    //   • OKHTTP  — okhttp is pinned to 5.0.0-alpha.10 here; rather than risk the integration
+    //               against an alpha, and because the only OkHttp calls (update/sponsor checks) run
+    //               off the main thread and aren't relevant to the ANR, this is left off. Add
+    //               InstrumentationFeature.OKHTTP after upgrading okhttp to a stable release.
+    //   • COMPOSE — would add navigation breadcrumbs but requires the sentry-compose-android
+    //               artifact and bytecode-instruments NavControllers. Left off to keep the change
+    //               minimal/low-risk; add the dependency + feature later if route breadcrumbs help.
+    tracingInstrumentation {
+        enabled.set(true)
+        features.set(EnumSet.of(InstrumentationFeature.DATABASE, InstrumentationFeature.FILE_IO))
+        logcat {
+            enabled.set(true)
+            minLevel.set(LogcatLevel.VERBOSE)
+        }
+    }
+
+    // Don't send the plugin's own build-time telemetry to Sentry.
+    telemetry.set(false)
 }
 
 ktfmt { kotlinLangStyle() }
@@ -3395,6 +3529,12 @@ dependencies {
 
     implementation(libs.mmkv)
 
+    // Sentry: crash + ANR + performance reporting. `sentry-android` is the umbrella artifact
+    // (core + NDK native-crash handler). If you add more io.sentry:* artifacts later (e.g.
+    // sentry-compose-android), keep them on this exact same version — or switch to the
+    // io.sentry:sentry-bom — to avoid the SDK's deliberate "mixed versions" init crash.
+    implementation(libs.sentry.android)
+
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.espresso.core)
@@ -3422,7 +3562,7 @@ tasks.register("printVersionName") {
 
 ================================================================================
 FILE: app/proguard-rules.pro
-SIZE: 2.40 KB
+SIZE: 3.41 KB
 ================================================================================
 
 # Add project specific ProGuard rules here.
@@ -3493,6 +3633,19 @@ SIZE: 2.40 KB
 #-keepnames class <1>$$serializer { # -keepnames suffices; class is kept when serializer() is kept.
 #    static <1>$$serializer INSTANCE;
 #}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Sentry
+# ──────────────────────────────────────────────────────────────────────────────
+# The Sentry SDK ships its own consumer ProGuard/R8 rules, so its classes are kept
+# automatically and no -keep rules are required here.
+#
+# This project already uses -dontobfuscate, so class/method names survive into release
+# builds and Sentry stack traces are readable. We additionally keep the source file name
+# and line-number table so traces (both Sentry's and the existing on-device crash screen)
+# show file:line. This only affects debug metadata in the DEX — there is no runtime impact.
+-keepattributes SourceFile,LineNumberTable
+
 
 ================================================================================
 FILE: app/schemas/com.junkfood.seal.database.AppDatabase/1.json
@@ -4089,7 +4242,7 @@ class ExampleInstrumentedTest {
 
 ================================================================================
 FILE: app/src/main/AndroidManifest.xml
-SIZE: 5.08 KB
+SIZE: 6.04 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -4133,6 +4286,26 @@ SIZE: 5.08 KB
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         tools:targetApi="tiramisu">
+
+        <!--
+          Sentry: we disable auto-init so App.kt can initialize the SDK manually with full
+          programmatic control (see App.initSentry()). The DSN and all other options live there.
+          This meta-data only controls the SentryInitProvider ContentProvider; manual init still
+          reads any Sentry meta-data declared here.
+        -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+        <!--
+          ANR stack profiling (SDK 8.35.0+): when an ANR is detected, capture a profile (flamegraph)
+          of what the main thread was doing, store it to disk, and attach it to the ANR event on the
+          next launch. Set here (rather than in code) because it's an experimental option that the
+          manifest reader supports directly. Set to 0.0 to disable.
+        -->
+        <meta-data
+            android:name="io.sentry.anr.profiling.sample-rate"
+            android:value="1.0" />
+
         <activity
             android:name=".CrashReportActivity"
             android:exported="false"
@@ -4227,9 +4400,10 @@ SIZE: 5.08 KB
 
 </manifest>
 
+
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/App.kt
-SIZE: 13.08 KB
+SIZE: 21.50 KB
 ================================================================================
 
 package com.junkfood.seal
@@ -4276,6 +4450,8 @@ import com.tencent.mmkv.MMKV
 import com.yausername.aria2c.Aria2c
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
+import io.sentry.Sentry
+import io.sentry.android.core.SentryAndroid
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -4292,6 +4468,16 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         MMKV.initialize(this)
+
+        // Initialize Sentry as early as possible — right after MMKV (which Sentry has no
+        // dependency on, but which we read below for the yt-dlp version tag) and before anything
+        // else runs. Initializing here means the SDK's crash handler, ANR detection, breadcrumb
+        // collectors, and offline cache are all live for the *entire* rest of startup, so a crash
+        // or freeze that happens while youtube-dl/ffmpeg/aria2c are initializing is still captured.
+        //
+        // This is a no-op when BuildConfig.SENTRY_DSN is blank, which is the case for the `fdroid`
+        // flavor (see app/build.gradle.kts), so F-Droid builds remain completely telemetry-free.
+        initSentry()
 
         startKoin {
             androidLogger()
@@ -4330,6 +4516,13 @@ class App : Application() {
                 }
                 UpdateUtil.deleteOutdatedApk()
             } catch (th: Throwable) {
+                // This failure is *caught*, so the global uncaught-exception handler below will not
+                // see it. Report it to Sentry explicitly so initialization failures (a common
+                // source of "the app is broken on some devices" reports) are still visible, then
+                // fall back to the existing on-device crash screen exactly as before.
+                if (isSentryEnabled) {
+                    Sentry.captureException(th)
+                }
                 withContext(Dispatchers.Main) { startCrashReportActivity(th) }
             }
         }
@@ -4342,7 +4535,123 @@ class App : Application() {
         }
         if (Build.VERSION.SDK_INT >= 26) NotificationUtil.createNotificationChannel()
 
-        Thread.setDefaultUncaughtExceptionHandler { _, e -> startCrashReportActivity(e) }
+        installGlobalCrashHandler()
+    }
+
+    /**
+     * Whether Sentry is active for this build. We gate purely on the DSN being non-blank: the
+     * `fdroid` flavor sets [BuildConfig.SENTRY_DSN] to the empty string (see app/build.gradle.kts),
+     * so this is automatically `false` there and Sentry is never initialized.
+     */
+    private val isSentryEnabled: Boolean
+        get() = BuildConfig.SENTRY_DSN.isNotBlank()
+
+    /**
+     * Configures and starts the Sentry SDK with verbose, "capture as much as possible" settings.
+     *
+     * The overarching goal here is to debug the app-switching UI freeze / ANR, so the configuration
+     * is deliberately aggressive: ANR detection (v2 on Android 11+) with the raw OS thread dump,
+     * full thread stacks, screenshots and a view-hierarchy snapshot on errors, a long breadcrumb
+     * trail, performance tracing (which also powers Sentry's server-side "DB/file I/O on the main
+     * thread" ANR root-cause analysis), and a larger on-disk envelope cache so nothing is lost
+     * while offline.
+     *
+     * Two related knobs live in `AndroidManifest.xml` instead of here, because they are read by
+     * Sentry's init ContentProvider / are experimental:
+     *  - `io.sentry.auto-init = false` — we initialize manually (here) for full programmatic control.
+     *  - `io.sentry.anr.profiling.sample-rate = 1.0` — ANR stack profiling (a flamegraph of what the
+     *    main thread was doing at the moment of an ANR), available since SDK 8.35.0.
+     */
+    private fun initSentry() {
+        val dsn = BuildConfig.SENTRY_DSN
+        if (dsn.isBlank()) return // Sentry disabled for this build (e.g. the F-Droid flavor).
+
+        SentryAndroid.init(this) { options ->
+            options.dsn = dsn
+
+            // ── Identify the build so events can be grouped/filtered in the Sentry UI ──────────
+            options.release =
+                "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
+            options.environment =
+                if (BuildConfig.DEBUG) "${BuildConfig.FLAVOR}-debug" else BuildConfig.FLAVOR
+            options.dist = BuildConfig.VERSION_CODE.toString()
+            options.setTag("flavor", BuildConfig.FLAVOR)
+            options.setTag("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown")
+            // yt-dlp version is stored in MMKV (initialized above). It may be empty on a fresh
+            // install before the first update check; that's fine, we just skip the tag then.
+            YT_DLP_VERSION.getString().takeIf { it.isNotBlank() }
+                ?.let { options.setTag("yt_dlp_version", it) }
+
+            // ── Log as much as possible (the entire point of this integration) ────────────────
+            // Verbose SDK self-logging only in debug builds, so release logcat stays clean.
+            options.isDebug = BuildConfig.DEBUG
+            // Attach request URLs/headers, IP, device name, etc. NOTE: this sends additional
+            // personally-identifiable information — see the disclosure in README.md.
+            options.isSendDefaultPii = true
+            // Attach stack traces for *every* running thread to events, not just the crashing one.
+            // This is the single most useful flag for understanding an ANR/deadlock.
+            options.isAttachThreads = true
+            // Capture a screenshot and a JSON snapshot of the view hierarchy at the moment of error.
+            options.isAttachScreenshot = true
+            options.isAttachViewHierarchy = true
+            // Keep a longer trail of breadcrumbs (default is 100). The Sentry Gradle plugin turns
+            // every android.util.Log call in the app into a breadcrumb (see app/build.gradle.kts),
+            // so this directly controls how much of that log history rides along with each event.
+            options.maxBreadcrumbs = 200
+            // Enable Sentry Logs so logs captured via Sentry.logger() are forwarded as well.
+            options.logs.isEnabled = true
+            // Richer native-crash context using Android tombstones (the native NDK crash handler
+            // itself ships in sentry-android and is on by default).
+            options.isTombstoneEnabled = true
+
+            // ── ANR detection: the primary motivation for adding Sentry ───────────────────────
+            options.isAnrEnabled = true
+            // Match Android's own 5-second ANR threshold (used by the pre-API-30 watchdog).
+            options.anrTimeoutIntervalMillis = 5_000L
+            // On the first launch after this SDK is added, also report ANRs that the OS recorded
+            // *before* Sentry existed (from ApplicationExitInfo history).
+            options.isReportHistoricalAnrs = true
+            // Attach the raw thread dump the OS captured for the ANR (held locks, all threads, …).
+            options.isAttachAnrThreadDump = true
+
+            // ── Performance tracing ───────────────────────────────────────────────────────────
+            // 100% sampling: capture every transaction. Besides giving timing data, this is what
+            // lets Sentry link a slow Room/SQLite or file-I/O span (instrumented by the Gradle
+            // plugin) to an ANR event as its root cause. Fine for a debugging-focused build; dial
+            // this down later if event volume becomes a concern.
+            options.tracesSampleRate = 1.0
+
+            // ── Offline durability: "store the logs and send them next time online" ───────────
+            // Sentry already persists every envelope (crash, ANR, log, breadcrumb-carrying event)
+            // to the app cache dir and re-sends on the next launch / when connectivity returns.
+            // We simply keep more of them so a long offline stretch doesn't drop older events.
+            options.maxCacheItems = 100
+        }
+    }
+
+    /**
+     * Installs the process-wide uncaught-exception handler.
+     *
+     * Behaviour is intentionally identical to the original single line this replaces — show the
+     * on-device [CrashReportActivity] — with one addition: when Sentry is active, the crash is also
+     * handed off to Sentry's own handler so it is captured, written to disk, and flushed before the
+     * process dies (and the process is then terminated, as it would be normally).
+     *
+     * Ordering matters. [SentryAndroid.init] (called earlier in [onCreate]) installs Sentry's
+     * handler as the current default; we capture it here as [downstream]. Sentry's handler ends by
+     * delegating to the system handler, which kills the process, so we must launch our crash screen
+     * *first* and only then hand off. When Sentry is **not** active, we deliberately do not chain to
+     * any downstream handler, preserving the exact pre-Sentry behaviour.
+     */
+    private fun installGlobalCrashHandler() {
+        val sentryActive = isSentryEnabled
+        val downstream = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            startCrashReportActivity(throwable)
+            if (sentryActive) {
+                downstream?.uncaughtException(thread, throwable)
+            }
+        }
     }
 
     private fun startCrashReportActivity(th: Throwable) {
@@ -60239,7 +60548,7 @@ org.gradle.configuration-cache=true
 
 ================================================================================
 FILE: gradle/libs.versions.toml
-SIZE: 6.73 KB
+SIZE: 7.27 KB
 ================================================================================
 
 [versions]
@@ -60282,6 +60591,13 @@ mmkv = "1.3.12"
 koin = "4.0.0"
 
 ktfmt = "0.20.1"
+
+# Sentry SDK (io.sentry:sentry-android, the core + NDK umbrella) and the Sentry Android Gradle
+# plugin. The plugin (6.10.0) bundles/targets this SDK version. If you ever add more io.sentry:*
+# artifacts, keep them all on `sentry` (or adopt io.sentry:sentry-bom) so the SDK doesn't trip its
+# deliberate "mixed versions" init crash.
+sentry = "8.43.1"
+sentryGradlePlugin = "6.10.0"
 
 [libraries]
 
@@ -60354,6 +60670,8 @@ youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", n
 
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
@@ -60364,6 +60682,7 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
 ktfmt-gradle = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentryGradlePlugin" }
 
 
 [bundles]
