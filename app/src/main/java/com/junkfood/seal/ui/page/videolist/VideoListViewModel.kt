@@ -57,10 +57,39 @@ class VideoListViewModel : ViewModel() {
             mutableSetOf<String>().apply { infoList.forEach { this.add(it.extractor) } }
         }
 
+    // ──────────────────────────────────────────────────────────────────────────────────────────
+    //  Per-item file sizes for the download-history list.
+    //
+    //  Operator ORDER here is load-bearing. `flowOn(dispatcher)` only changes the dispatcher for
+    //  operators *upstream* of it; everything downstream runs on whatever context *collects* the
+    //  flow. This is collected in VideoListPage via `collectAsStateWithLifecycle(...)`, which
+    //  collects on the main (UI) thread.
+    //
+    //  The previous code was:
+    //
+    //      videoListFlow.flowOn(Dispatchers.IO).map { list ->
+    //          list.associate { it.id to it.videoPath.getFileSize() }
+    //      }
+    //
+    //  In that ordering, only `videoListFlow` (the Room read + reverse/sort) ran on IO, while the
+    //  `.map { … getFileSize() }` ran on the COLLECTOR — i.e. the main thread. `getFileSize()` does
+    //  a `File.length()` stat for every entry in the *entire* history, and a ContentResolver/SAF
+    //  query (`DocumentFile.length()`) for any SD-card or zero-byte entry. Because `videoListFlow`
+    //  is backed by a Room `Flow`, it re-emits on *every* change to the download history — including
+    //  every completed download — so this whole stat/binder sweep was re-run on the main thread on
+    //  each completion. With a large history and the rapid-fire downloads of the heavy
+    //  app-switching workflow, that repeatedly stalls the UI thread (and recovers as soon as the
+    //  page stops collecting, e.g. when the app is backgrounded). It is also where the
+    //  "Failed query: NullPointerException … Cursor.getCount()" breadcrumbs originate (the SAF
+    //  query inside `getFileSize()` for entries whose `ContentResolver.query()` returns null).
+    //
+    //  Moving `flowOn(Dispatchers.IO)` to AFTER the `.map { … }` puts the size computation upstream
+    //  of `flowOn`, so it now runs on IO. The collector only ever receives the finished `Map`.
+    //  The emitted value is identical to before — only the thread it is computed on changes.
     val fileSizeMapFlow =
-        videoListFlow.flowOn(Dispatchers.IO).map { list ->
-            list.associate { it.id to it.videoPath.getFileSize() }
-        }
+        videoListFlow
+            .map { list -> list.associate { it.id to it.videoPath.getFileSize() } }
+            .flowOn(Dispatchers.IO)
 
     fun clickVideoFilter() {
         if (mutableStateFlow.value.videoFilter)
