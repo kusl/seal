@@ -1,9 +1,9 @@
-kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
+kushal@fedora:~/src/dotnet/DistributedTasking$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
 mine
 origin
 
-real	0m0.004s
-user	0m0.002s
+real	0m0.002s
+user	0m0.000s
 sys	0m0.002s
 * remote origin
   Fetch URL: https://github.com/JunkFood02/Seal
@@ -19,9 +19,9 @@ sys	0m0.002s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.189s
-user	0m0.013s
-sys	0m0.009s
+real	0m0.213s
+user	0m0.011s
+sys	0m0.010s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -33,35 +33,57 @@ sys	0m0.009s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.608s
+real	0m0.576s
 user	0m0.010s
-sys	0m0.009s
+sys	0m0.007s
 
-real	0m0.146s
-user	0m0.013s
-sys	0m0.017s
+real	0m0.131s
+user	0m0.014s
+sys	0m0.012s
 On branch main
-Your branch is ahead of 'origin/main' by 32 commits.
+Your branch is ahead of 'origin/main' by 39 commits.
   (use "git push" to publish your local commits)
 
-nothing to commit, working tree clean
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .github/workflows/android.yml
+	modified:   .github/workflows/android_ci.yml
+	modified:   .github/workflows/release.yml
+	modified:   app/src/main/AndroidManifest.xml
+	modified:   app/src/main/java/com/junkfood/seal/App.kt
+	modified:   app/src/main/java/com/junkfood/seal/MainActivity.kt
+	modified:   app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
+	modified:   app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
+	modified:   gradle.properties
+	modified:   gradle/libs.versions.toml
+	modified:   gradle/wrapper/gradle-wrapper.properties
+	modified:   settings.gradle.kts
 
-real	0m0.006s
-user	0m0.001s
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	app/app.build.gradle.kts
+	app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
+	color/color.build.gradle.kts
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+real	0m0.007s
+user	0m0.002s
 sys	0m0.005s
-Enumerating objects: 36, done.
-Counting objects: 100% (36/36), done.
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (17/17), done.
-Writing objects: 100% (23/23), 11.81 KiB | 5.90 MiB/s, done.
-Total 23 (delta 11), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (11/11), completed with 7 local objects.
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (10/10), 72.45 KiB | 18.11 MiB/s, done.
+Total 10 (delta 5), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (5/5), completed with 3 local objects.
 To github.com:kusl/seal.git
-   82a78bc3..3c2b165e  main -> main
+   2443887a..f0a30cc5  main -> main
 
-real	0m1.370s
-user	0m0.015s
-sys	0m0.012s
+real	0m1.320s
+user	0m0.018s
+sys	0m0.011s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -73,9 +95,9 @@ sys	0m0.012s
     main pushes to main (up to date)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.486s
-user	0m0.008s
-sys	0m0.008s
+real	0m0.510s
+user	0m0.010s
+sys	0m0.004s
 ==============================================
   Generating Clean Project Export
 ==============================================
@@ -449,57 +471,93 @@ Processed: translations/README-zh_Hant.md
 
 Export Complete: docs/llm/dump.txt
 
-real	0m3.541s
-user	0m1.866s
-sys	0m2.322s
+real	0m3.629s
+user	0m1.888s
+sys	0m2.459s
 On branch main
-Your branch is ahead of 'origin/main' by 32 commits.
+Your branch is ahead of 'origin/main' by 39 commits.
   (use "git push" to publish your local commits)
 
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
+	modified:   .github/workflows/android.yml
+	modified:   .github/workflows/android_ci.yml
+	modified:   .github/workflows/release.yml
+	modified:   app/src/main/AndroidManifest.xml
+	modified:   app/src/main/java/com/junkfood/seal/App.kt
+	modified:   app/src/main/java/com/junkfood/seal/MainActivity.kt
+	modified:   app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
+	modified:   app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
 	modified:   docs/llm/dump.txt
+	modified:   gradle.properties
+	modified:   gradle/libs.versions.toml
+	modified:   gradle/wrapper/gradle-wrapper.properties
+	modified:   settings.gradle.kts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	app/app.build.gradle.kts
+	app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
+	color/color.build.gradle.kts
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
-real	0m0.005s
+real	0m0.006s
 user	0m0.000s
-sys	0m0.005s
+sys	0m0.006s
 warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
 
-real	0m0.039s
-user	0m0.033s
-sys	0m0.005s
+real	0m0.052s
+user	0m0.034s
+sys	0m0.007s
 On branch main
-Your branch is ahead of 'origin/main' by 32 commits.
+Your branch is ahead of 'origin/main' by 39 commits.
   (use "git push" to publish your local commits)
 
 Changes to be committed:
   (use "git restore --staged <file>..." to unstage)
+	modified:   .github/workflows/android.yml
+	modified:   .github/workflows/android_ci.yml
+	modified:   .github/workflows/release.yml
+	new file:   app/app.build.gradle.kts
+	modified:   app/src/main/AndroidManifest.xml
+	modified:   app/src/main/java/com/junkfood/seal/App.kt
+	modified:   app/src/main/java/com/junkfood/seal/MainActivity.kt
+	new file:   app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
+	modified:   app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
+	modified:   app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
+	new file:   color/color.build.gradle.kts
 	modified:   docs/llm/dump.txt
+	modified:   gradle.properties
+	modified:   gradle/libs.versions.toml
+	modified:   gradle/wrapper/gradle-wrapper.properties
+	modified:   settings.gradle.kts
 
 
 real	0m0.021s
-user	0m0.013s
-sys	0m0.008s
-[main b3d883cd] run dump
- 1 file changed, 39 insertions(+), 10 deletions(-)
+user	0m0.014s
+sys	0m0.007s
+[main bed9490b] run dump
+ 16 files changed, 1337 insertions(+), 260 deletions(-)
+ create mode 100644 app/app.build.gradle.kts
+ create mode 100644 app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
+ create mode 100644 color/color.build.gradle.kts
 
-real	0m0.040s
-user	0m0.024s
-sys	0m0.015s
-Enumerating objects: 9, done.
-Counting objects: 100% (9/9), done.
+real	0m0.043s
+user	0m0.029s
+sys	0m0.014s
+Enumerating objects: 66, done.
+Counting objects: 100% (66/66), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (4/4), done.
-Writing objects: 100% (5/5), 1.58 KiB | 1.58 MiB/s, done.
-Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+Compressing objects: 100% (31/31), done.
+Writing objects: 100% (35/35), 29.08 KiB | 1.32 MiB/s, done.
+Total 35 (delta 22), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (22/22), completed with 22 local objects.
 To github.com:kusl/seal.git
-   3c2b165e..b3d883cd  main -> main
+   f0a30cc5..bed9490b  main -> main
 
-real	0m1.540s
-user	0m0.019s
+real	0m1.671s
+user	0m0.043s
 sys	0m0.023s
 kushal@fedora:~/src/kotlin/Seal$ 
