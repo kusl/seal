@@ -1,53 +1,94 @@
 [versions]
-accompanist = "0.34.0"
-androidGradlePlugin = "8.7.2"
-androidxComposeBom = "2025.03.01"
-androidxCore = "1.15.0"
-androidMaterial = "1.12.0"
-androidxAppCompat = "1.7.0"
-androidxActivity = "1.10.1"
+# ── Build toolchain ───────────────────────────────────────────────────────────
+# AGP 8.13.2 is the latest 8.x patch (its R8 officially supports Kotlin 2.3).
+# We deliberately stay on the 8.x line: AGP 9.x removes the legacy variant API
+# (used below for APK renaming), requires the built-in-Kotlin migration, and —
+# decisively — the Sentry Android Gradle plugin does not yet support AGP 9
+# (it fails with "Extension of type 'AppExtension' does not exist").
+# 8.13.x supports compileSdk/targetSdk 36 (Android 16), which is all we need.
+androidGradlePlugin = "8.13.2"
+
+# Kotlin 2.3.20 (March 2026 tooling release). Kotlin 2.4.0 shipped days ago but
+# is too fresh for the Room/KSP/Sentry-plugin ecosystem on a CI-only project;
+# 2.3.20 is the newest version with a fully settled plugin ecosystem.
+kotlin = "2.3.20"
+
+# KSP now uses standalone versioning (decoupled from Kotlin). 2.3.9 is the
+# latest release (May 2026) and the version the official KSP docs pair with
+# current Kotlin releases.
+ksp = "2.3.9"
+
+# ── AndroidX / Compose ────────────────────────────────────────────────────────
+# STABLE Compose BOM (no more `compose-bom-alpha`). 2026.05.00 maps to Compose
+# 1.11.x and Material 3 1.4.0 — all stable. This removes the pre-release-BOM
+# risk that was flagged in earlier debugging rounds.
+androidxComposeBom = "2026.05.00"
+
+# The androidx.compose.material:material-icons-* artifacts stopped being
+# published after 1.7.x and were REMOVED from the Compose BOM. 1.7.8 is the
+# final version and is forward-compatible with Compose 1.11 (it only depends on
+# stable ui/ runtime APIs). It must now carry an explicit version.
+composeMaterialIcons = "1.7.8"
+
+androidxCore = "1.19.0"
+androidMaterial = "1.14.0"
+androidxAppCompat = "1.7.1"
+androidxActivity = "1.13.0"
 graphics = "1.0.1"
-constraintLayout = "1.1.0"
+constraintLayout = "1.1.1"
 
-androidxLifecycle = "2.8.7"
-androidxNavigation = "2.8.9"
+androidxLifecycle = "2.10.0"
+androidxNavigation = "2.9.8"
 
-androidxEspresso = "3.5.0"
-androidxTestExt = "1.1.4"
+# androidx.test moved to a unified release train in 2025; these are the latest
+# stable artifact versions from it. (androidTest-only — not part of release builds.)
+androidxEspresso = "3.7.0"
+androidxTestExt = "1.3.0"
 
-
-coil = "2.5.0"
+# ── App libraries ─────────────────────────────────────────────────────────────
+# Coil 3 (package `coil3`). Networking is no longer bundled in coil-core — the
+# coil-network-okhttp artifact below restores http(s) image loading via the
+# OkHttp we already ship. See AsyncImageImpl.kt for the (single-file) migration.
+coil = "3.4.0"
 
 junit4 = "4.13.2"
 
-kotlin = "2.0.20"
+serialization = "1.11.0"
 
-coroutines = "1.9.0"
-datetime = "0.6.1"
-serialization = "1.7.2"
-okhttp = "5.0.0-alpha.10"
+# OkHttp finally left alpha: 5.0.0 went stable in July 2025; 5.4.0 is current.
+# This also unblocks Sentry's OkHttp auto-instrumentation (see app/build.gradle.kts).
+okhttp = "5.4.0"
 
-room = "2.6.1"
-ksp = "2.0.20-1.0.25"
+room = "2.8.4"
 
 youtubedlAndroid = "0.17.3"
 
-mmkv = "1.3.12"
-# pin to v1.3.x for 32-bit support
+# MMKV 2.x is 64-bit only. That is now fine: minSdk 35 (Android 15) devices are
+# 64-bit, and the build no longer produces 32-bit APKs (see app/build.gradle.kts).
+# The old "pin to v1.3.x for 32-bit support" constraint is gone.
+mmkv = "2.4.0"
 
-koin = "4.0.0"
+koin = "4.2.1"
 
-ktfmt = "0.20.1"
+ktfmt = "0.26.0"
 
-# Sentry SDK (io.sentry:sentry-android, the core + NDK umbrella) and the Sentry Android Gradle
-# plugin. The plugin (6.10.0) bundles/targets this SDK version. If you ever add more io.sentry:*
-# artifacts, keep them all on `sentry` (or adopt io.sentry:sentry-bom) so the SDK doesn't trip its
-# deliberate "mixed versions" init crash.
+# accompanist-permissions is alive and current at 0.37.x. accompanist-webview
+# and accompanist-pager-indicators were REMOVED upstream after 0.34/0.35, so the
+# two artifacts that still use them stay pinned to the last version that ships
+# them. They only use stable Compose/AndroidView APIs, so they remain
+# binary-compatible with Compose 1.11. (Long-term: migrate WebViewPage to a raw
+# AndroidView and the one HorizontalPagerIndicator usage to a custom composable.)
+accompanist = "0.37.3"
+accompanistLegacy = "0.34.0"
+
+# Sentry SDK (io.sentry:sentry-android + sentry-okhttp) and the Sentry Android
+# Gradle plugin. 8.43.1 (June 3, 2026) and plugin 6.10.0 are both the latest
+# releases — already current. Keep all io.sentry:* artifacts on the same
+# `sentry` version to avoid the SDK's deliberate "mixed versions" init crash.
 sentry = "8.43.1"
 sentryGradlePlugin = "6.10.0"
 
 [libraries]
-
 
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
@@ -57,14 +98,16 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
-accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanist" }
-accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanist" }
+# Removed upstream after 0.34/0.35 — pinned to the last published version (see note above).
+accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanistLegacy" }
+accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanistLegacy" }
 
-#androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom-alpha", version.ref = "androidxComposeBom" }
+# Stable BOM — was `compose-bom-alpha` pinned to a pre-release.
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }
+# No longer in the BOM — explicit (final) version required, see [versions].
+androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeMaterialIcons" }
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 
@@ -90,26 +133,21 @@ androidx-test-ext = { group = "androidx.test.ext", name = "junit-ktx", version.r
 
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxEspresso" }
 
-
-coil-kt-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+# Coil 3: compose bindings + the OkHttp network fetcher (auto-registered via
+# service loader — no code needed beyond having it on the classpath).
+coil-kt-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 
-kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
-kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 
-
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-
-#youtubedl-android-library = { group = "com.github.yausername.youtubedl_android", name = "library", version.ref = "youtubedlAndroid" }
-#youtubedl-android-ffmpeg = { group = "com.github.yausername.youtubedl_android", name = "ffmpeg", version.ref = "youtubedlAndroid" }
-#youtubedl-android-aria2c = { group = "com.github.yausername.youtubedl_android", name = "aria2c", version.ref = "youtubedlAndroid" }
 
 youtubedl-android-library = { group = "io.github.junkfood02.youtubedl-android", name = "library", version.ref = "youtubedlAndroid" }
 youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", name = "ffmpeg", version.ref = "youtubedlAndroid" }
@@ -118,6 +156,9 @@ youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", n
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+# Required by the Sentry Gradle plugin's OKHTTP instrumentation feature, which
+# is now enabled (okhttp is stable). Same version as sentry-android — mandatory.
+sentry-okhttp = { group = "io.sentry", name = "sentry-okhttp", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

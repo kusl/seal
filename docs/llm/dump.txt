@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Mon Jun  8 10:00:33 PM EDT 2026
+Generated: Wed Jun 10 10:34:08 AM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -443,6 +443,7 @@ DIRECTORY STRUCTURE:
 │       ├── claude.md
 │       ├── dump.txt
 │       ├── error.txt
+│       ├── files.zip
 │       ├── output.txt
 │       └── sentry.json
 ├── export.sh
@@ -878,19 +879,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: 'gradle'
 
     - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v4
 
-    - uses: gradle/actions/setup-gradle@v3
+    - uses: gradle/actions/setup-gradle@v6
 
     - run: gradle assembleRelease
 
@@ -915,7 +916,7 @@ jobs:
 
 ================================================================================
 FILE: .github/workflows/android_ci.yml
-SIZE: .63 KB
+SIZE: .58 KB
 ================================================================================
 
 name: Android CI
@@ -924,27 +925,24 @@ on:
   pull_request:
     branches: [ "main" ]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -976,7 +974,7 @@ jobs:
 
 ================================================================================
 FILE: .github/workflows/release.yml
-SIZE: 7.62 KB
+SIZE: 7.52 KB
 ================================================================================
 
 # .github/workflows/release.yml
@@ -999,10 +997,6 @@ on:
     branches:
       - main
 
-# Opt into Node.js 24 to silence the deprecation warnings.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 # Only allow one release workflow to run at a time; cancel any in-progress run
 # if a new push arrives before it finishes.
 concurrency:
@@ -1020,13 +1014,13 @@ jobs:
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       # ── 2. Java / Gradle toolchain ─────────────────────────────────────────
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -1034,11 +1028,11 @@ jobs:
 
       # ── 3. Android SDK ─────────────────────────────────────────────────────
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       # ── 4. Gradle wrapper ──────────────────────────────────────────────────
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -1145,7 +1139,7 @@ jobs:
       # NOT "genericRelease" — Gradle uses separate directories for flavor and
       # build type.
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.name }}
           name: Seal ${{ steps.version.outputs.name }}
@@ -4244,7 +4238,7 @@ class ExampleInstrumentedTest {
 
 ================================================================================
 FILE: app/src/main/AndroidManifest.xml
-SIZE: 6.04 KB
+SIZE: 6.53 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -4252,14 +4246,9 @@ SIZE: 6.04 KB
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission
-        android:name="android.permission.POST_NOTIFICATIONS"
-        android:minSdkVersion="33" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission
@@ -4284,10 +4273,8 @@ SIZE: 6.04 KB
         android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        tools:targetApi="tiramisu">
+        android:supportsRtl="true">
 
         <!--
           Sentry: we disable auto-init so App.kt can initialize the SDK manually with full
@@ -4340,11 +4327,22 @@ SIZE: 6.04 KB
             </intent-filter>
         </activity>
 
+        <!--
+          specialUse foreground service: yt-dlp media downloads don't fit any concrete FGS type
+          (dataSync has a 6-hour timeout; mediaProcessing is for transcoding local media). The
+          <property> below is the Android-14+ way to declare *what* the special use is — it's
+          surfaced in `dumpsys` and required by Play review (irrelevant here, but it costs nothing
+          and documents intent). specialUse has no system-imposed runtime timeout on Android 15+.
+        -->
         <service
             android:name=".DownloadService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-initiated media downloads via the bundled yt-dlp/ffmpeg, with per-task progress notifications" />
+        </service>
 
         <activity
             android:name=".MainActivity"
@@ -4405,12 +4403,13 @@ SIZE: 6.04 KB
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/App.kt
-SIZE: 23.78 KB
+SIZE: 28.63 KB
 ================================================================================
 
 package com.junkfood.seal
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
 import android.content.ClipboardManager
 import android.content.ComponentName
@@ -4422,7 +4421,10 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
+import android.util.Log
 import androidx.core.content.getSystemService
 import com.google.android.material.color.DynamicColors
 import com.junkfood.seal.download.DownloaderV2
@@ -4469,6 +4471,7 @@ import org.koin.dsl.module
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        val onCreateStart = SystemClock.uptimeMillis()
 
         // ──────────────────────────────────────────────────────────────────────────────────────
         //  Initialization order is load-bearing here. Do NOT reorder without reading this.
@@ -4496,6 +4499,11 @@ class App : Application() {
         //    2. applicationScope  — required by the .stateIn(…) above (and DatabaseUtil.init)
         //    3. MMKV.initialize   — PreferenceUtil's getters read from MMKV
         //  None of them depends on Koin or on the heavyweight init below, so this is safe and early.
+        //
+        //  NOTE: this is also the ONLY place App.context may ever be assigned. It must always be
+        //  the *application* context. MainActivity used to overwrite it with the Activity's
+        //  baseContext on every onCreate(), leaking each Activity instance (and its Compose trees)
+        //  for the lifetime of the process — see MainActivity.kt for the full story.
         context = applicationContext
         applicationScope = CoroutineScope(SupervisorJob())
         MMKV.initialize(this)
@@ -4511,6 +4519,56 @@ class App : Application() {
         // flavor (see app/build.gradle.kts), so F-Droid builds remain completely telemetry-free.
         initSentry()
 
+        // The in-process freeze detector. Sentry's ANRv2 can only report stalls that the OS itself
+        // escalated to a full ANR (≥ 5 s of ignored *input*); the freezes under investigation
+        // recover (or get force-killed) before that, which is exactly why no logs ever appeared.
+        // The watchdog measures main-looper liveness directly with a 2-second threshold and dumps
+        // all thread stacks to logcat, to a rotating file, and (gated on the same flag as
+        // everything else) to Sentry. See MainThreadWatchdog.kt for the full design rationale.
+        MainThreadWatchdog.install(context = this, sentryEnabled = isSentryEnabled)
+
+        // Log every Activity lifecycle transition. Each Log.d below is rewritten into a Sentry
+        // breadcrumb by the Gradle plugin's logcat instrumentation, so when a freeze report or
+        // crash arrives, its timeline shows exactly the app-switching churn (pause/stop/recreate
+        // bursts) that precedes the symptom. Locally: `adb logcat -s AppLifecycle`.
+        registerActivityLifecycleCallbacks(
+            object : ActivityLifecycleCallbacks {
+                private val tag = "AppLifecycle"
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                    Log.d(
+                        tag,
+                        "${activity.javaClass.simpleName} created" +
+                            if (savedInstanceState != null) " (restored)" else "",
+                    )
+                }
+
+                override fun onActivityStarted(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} started")
+                }
+
+                override fun onActivityResumed(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} resumed")
+                }
+
+                override fun onActivityPaused(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} paused")
+                }
+
+                override fun onActivityStopped(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} stopped")
+                }
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
+                    Log.d(tag, "${activity.javaClass.simpleName} saveInstanceState")
+                }
+
+                override fun onActivityDestroyed(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} destroyed")
+                }
+            }
+        )
+
         startKoin {
             androidLogger()
             androidContext(this@App)
@@ -4525,12 +4583,10 @@ class App : Application() {
             )
         }
 
+        // minSdk is 35: the modern PackageInfoFlags overload always exists, so the old
+        // `if (SDK_INT >= 33)` fork is gone.
         packageInfo =
-            packageManager.run {
-                if (Build.VERSION.SDK_INT >= 33)
-                    getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
-                else getPackageInfo(packageName, 0)
-            }
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
         DynamicColors.applyToActivitiesIfAvailable(this)
 
         clipboard = getSystemService()!!
@@ -4550,6 +4606,7 @@ class App : Application() {
                 // see it. Report it to Sentry explicitly so initialization failures (a common
                 // source of "the app is broken on some devices" reports) are still visible, then
                 // fall back to the existing on-device crash screen exactly as before.
+                Log.e(TAG, "youtubedl-android initialization failed", th)
                 if (isSentryEnabled) {
                     Sentry.captureException(th)
                 }
@@ -4563,9 +4620,12 @@ class App : Application() {
         if (!PreferenceUtil.containsKey(COMMAND_DIRECTORY)) {
             COMMAND_DIRECTORY.updateString(videoDownloadDir)
         }
-        if (Build.VERSION.SDK_INT >= 26) NotificationUtil.createNotificationChannel()
+        // minSdk 35 ≥ 26: notification channels always exist; the version gate is gone.
+        NotificationUtil.createNotificationChannel()
 
         installGlobalCrashHandler()
+
+        Log.i(TAG, "App.onCreate completed in ${SystemClock.uptimeMillis() - onCreateStart} ms")
     }
 
     /**
@@ -4697,6 +4757,8 @@ class App : Application() {
     }
 
     companion object {
+        private const val TAG = "App"
+
         lateinit var clipboard: ClipboardManager
         lateinit var videoDownloadDir: String
         lateinit var audioDownloadDir: String
@@ -4736,6 +4798,13 @@ class App : Application() {
         //       thread share one consistent view of the flag.
         //    3. If bindService() returns false (system not bringing the service up), release the
         //       connection we passed in, per the Android contract, so nothing leaks.
+        //
+        //  Diagnostics (this round): bindService()/unbindService() are binder IPC calls into
+        //  system_server. Under heavy system load they can take surprisingly long — and because
+        //  both run inside `serviceLock`, a slow call made by the background scheduler can briefly
+        //  block a main-thread caller on the lock. The timing logs below make any such stall
+        //  visible in logcat and (via the logcat instrumentation) as Sentry breadcrumbs, so the
+        //  watchdog's stack dumps can be correlated with a concrete cause.
 
         private val serviceLock = Any()
 
@@ -4754,13 +4823,18 @@ class App : Application() {
                 override fun onServiceConnected(className: ComponentName, service: IBinder) {
                     // Binding state is tracked synchronously at bind/unbind time (see above), not
                     // here. We keep the cast purely as a sanity check on the returned binder.
-                    @Suppress("UNUSED_VARIABLE")
                     val binder = service as? DownloadService.DownloadServiceBinder
+                    Log.i(
+                        TAG,
+                        "onServiceConnected: ${className.shortClassName}" +
+                            " (binder ok=${binder != null})",
+                    )
                 }
 
                 override fun onServiceDisconnected(arg0: ComponentName) {
                     // The service process went away (e.g. it was killed). Reflect that so a future
                     // startService() will re-bind instead of being short-circuited by a stale flag.
+                    Log.w(TAG, "onServiceDisconnected: ${arg0.shortClassName} — service died")
                     synchronized(serviceLock) { isBound = false }
                 }
             }
@@ -4768,7 +4842,9 @@ class App : Application() {
         fun startService() =
             synchronized(serviceLock) {
                 if (isBound) return@synchronized
+                Log.i(TAG, "startService: binding DownloadService")
                 val intent = Intent(context.applicationContext, DownloadService::class.java)
+                val bindStart = SystemClock.uptimeMillis()
                 val bringingUp =
                     try {
                         context.applicationContext.bindService(
@@ -4777,18 +4853,25 @@ class App : Application() {
                             Context.BIND_AUTO_CREATE,
                         )
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.e(TAG, "startService: bindService threw", e)
                         false
                     }
+                val bindMs = SystemClock.uptimeMillis() - bindStart
                 if (bringingUp) {
                     isBound = true
+                    Log.i(TAG, "startService: bound (bindService took $bindMs ms)")
                 } else {
                     // bindService() did not start the service. We must still unbind the connection
                     // we just registered, otherwise it leaks.
+                    Log.w(
+                        TAG,
+                        "startService: bindService returned false after $bindMs ms" +
+                            " — releasing connection",
+                    )
                     try {
                         context.applicationContext.unbindService(connection)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.w(TAG, "startService: cleanup unbindService threw", e)
                     }
                 }
             }
@@ -4797,11 +4880,15 @@ class App : Application() {
             synchronized(serviceLock) {
                 if (!isBound) return@synchronized
                 isBound = false
+                Log.i(TAG, "stopService: unbinding DownloadService")
+                val unbindStart = SystemClock.uptimeMillis()
                 try {
                     context.applicationContext.unbindService(connection)
+                    val unbindMs = SystemClock.uptimeMillis() - unbindStart
+                    Log.i(TAG, "stopService: unbound (unbindService took $unbindMs ms)")
                 } catch (e: Exception) {
                     // Connection was already unregistered (e.g. the service died). Nothing to do.
-                    e.printStackTrace()
+                    Log.w(TAG, "stopService: unbindService threw — connection already gone", e)
                 }
             }
 
@@ -4843,19 +4930,10 @@ class App : Application() {
 
         fun getVersionReport(): String {
             val versionName = packageInfo.versionName
-            val page = packageInfo
-            val versionCode =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode
-                } else {
-                    packageInfo.versionCode.toLong()
-                }
-            val release =
-                if (Build.VERSION.SDK_INT >= 30) {
-                    Build.VERSION.RELEASE_OR_CODENAME
-                } else {
-                    Build.VERSION.RELEASE
-                }
+            // minSdk 35 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
+            // always exists, so both legacy forks (and the dead `val page` that sat here) are gone.
+            val versionCode = packageInfo.longVersionCode
+            val release = Build.VERSION.RELEASE_OR_CODENAME
             return StringBuilder()
                 .append("App version: $versionName ($versionCode)\n")
                 .append("Device information: Android $release (API ${Build.VERSION.SDK_INT})\n")
@@ -5619,29 +5697,25 @@ object Downloader {
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/MainActivity.kt
-SIZE: 3.06 KB
+SIZE: 4.17 KB
 ================================================================================
 
 package com.junkfood.seal
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import com.junkfood.seal.App.Companion.context
 import com.junkfood.seal.ui.common.LocalDarkTheme
 import com.junkfood.seal.ui.common.SettingsProvider
 import com.junkfood.seal.ui.page.AppEntry
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.junkfood.seal.ui.theme.SealTheme
-import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.matchUrlFromSharedText
-import com.junkfood.seal.util.setLanguage
-import kotlinx.coroutines.runBlocking
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.KoinContext
 
@@ -5651,13 +5725,26 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate (restored=${savedInstanceState != null})")
 
-        if (Build.VERSION.SDK_INT < 33) {
-            runBlocking { setLanguage(PreferenceUtil.getLocaleFromPreference()) }
-        }
+        // ── Two lines used to sit here; both are deliberately GONE. Do not reintroduce them. ──
+        //
+        // 1. `runBlocking { setLanguage(…) }` behind an `if (SDK_INT < 33)` guard:
+        //    minSdk is now 35, so the branch could never execute — pure dead code (the AndroidX
+        //    per-app-locales service in the manifest handles locale persistence on 33+).
+        //
+        // 2. `context = this.baseContext` — the single biggest memory hazard found in this round.
+        //    It overwrote the GLOBAL App.context (used by Room/DatabaseUtil, FileUtil, service
+        //    binding, toasts, …) with this Activity's base ContextImpl. A ContextImpl holds its
+        //    Activity via mOuterContext, so every recreation of MainActivity (theme change, the
+        //    system reclaiming it during app-switching, …) leaked the previous Activity instance
+        //    together with its entire Compose composition. Under the memory pressure of heavy
+        //    app-switching, those accumulated leaks mean GC churn and progressively longer UI
+        //    pauses — the exact freeze under investigation. App.context is assigned exactly once,
+        //    in App.onCreate(), to the application context, and that is the only assignment that
+        //    may ever exist.
         enableEdgeToEdge()
 
-        context = this.baseContext
         setContent {
             KoinContext {
                 val windowSizeClass = calculateWindowSizeClass(this)
@@ -5676,6 +5763,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         val url = intent.getSharedURL()
+        Log.d(TAG, "onNewIntent: action=${intent.action} urlExtracted=${url != null}")
         if (url != null) {
             dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(url)))
         }
@@ -6287,7 +6375,7 @@ data class OptionShortcut(@PrimaryKey(autoGenerate = true) val id: Long = 0, val
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
-SIZE: 24.22 KB
+SIZE: 26.88 KB
 ================================================================================
 
 package com.junkfood.seal.download
@@ -6449,6 +6537,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         structuralStateMap.count { (_, key) ->
                             key == "Running" || key == "FetchingInfo"
                         }
+                    // Logging only: this fires once per *structural* transition (never per
+                    // progress tick), so the string build below is cheap and the line doubles as
+                    // a Sentry breadcrumb documenting every scheduler decision.
+                    Log.d(
+                        TAG,
+                        "scheduler: tasks=${structuralStateMap.size} " +
+                            "states=${structuralStateMap.values.groupingBy { it }.eachCount()} " +
+                            "-> ${if (runningCount > 0) "startService" else "stopService"}",
+                    )
                     if (runningCount > 0) App.startService() else App.stopService()
                 }
         }
@@ -6511,6 +6608,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         }
                     state.copy(downloadState = downloadState)
                 }
+        Log.i(TAG, "enqueueFromBackup: restoring ${taskList.size} unfinished task(s)")
         taskList.forEach(::enqueue)
     }
 
@@ -6523,11 +6621,13 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     override fun enqueue(task: Task) {
+        Log.d(TAG, "enqueue: id=${task.id} url=${task.url}")
         taskStateMap +=
             task to Task.State(Idle, null, Task.ViewState(url = task.url, title = task.url))
     }
 
     override fun enqueue(task: Task, state: Task.State) {
+        Log.d(TAG, "enqueue: id=${task.id} state=${state.downloadState.toStructuralKey()}")
         taskStateMap += task to state
     }
 
@@ -6540,14 +6640,18 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         if (taskStateMap.contains(task)) {
             taskStateMap.remove(task)
             clearProgressTracking(task.id)
+            Log.d(TAG, "remove: id=${task.id} removed")
             return true
         }
+        Log.d(TAG, "remove: id=${task.id} not found")
         return false
     }
 
-    override fun cancel(task: Task): Boolean = task.cancelImpl()
+    override fun cancel(task: Task): Boolean =
+        task.cancelImpl().also { Log.d(TAG, "cancel: id=${task.id} success=$it") }
 
     override fun restart(task: Task) {
+        Log.d(TAG, "restart: id=${task.id}")
         task.restartImpl()
     }
 
@@ -6603,6 +6707,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
      * This prevents flooding Compose with recompositions on every yt-dlp progress callback.
      * Notifications are updated regardless of throttling since they don't cause UI thread pressure.
      *
+     * NOTE: deliberately NO logging in here — this is the per-progress-tick hot path, and with the
+     * Sentry logcat instrumentation every Log call becomes a breadcrumb. Logging only happens at
+     * state *transitions* (enqueue/start/success/failure/cancel), never per tick.
+     *
      * @return true if the SnapshotStateMap was actually updated, false if throttled
      */
     private fun Task.updateProgressThrottled(progress: Float, progressText: String): Boolean {
@@ -6630,7 +6738,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
 
     /** Processes pending tasks, prioritizing downloads. */
     private fun doYourWork() {
-        if (taskStateMap.countRunning() >= MAX_CONCURRENCY) return
+        val running = taskStateMap.countRunning()
+        if (running >= MAX_CONCURRENCY) {
+            Log.v(TAG, "doYourWork: $running task(s) active >= max $MAX_CONCURRENCY, waiting")
+            return
+        }
 
         taskStateMap.entries
             .sortedBy { (_, state) -> state.downloadState }
@@ -6638,6 +6750,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 state.downloadState == ReadyWithInfo || state.downloadState == Idle
             }
             ?.let { (task, state) ->
+                Log.v(
+                    TAG,
+                    "doYourWork: picked id=${task.id}" +
+                        " state=${state.downloadState.toStructuralKey()}",
+                )
                 when (state.downloadState) {
                     Idle -> task.prepare()
                     ReadyWithInfo -> task.download()
@@ -6662,6 +6779,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         val task = this
         val taskInfo = task.type
         val playlistIndex = if (taskInfo is TypeInfo.Playlist) taskInfo.index else null
+        Log.i(TAG, "fetchInfo: start id=$id url=$url")
         scope
             .launch(Dispatchers.Default) {
                 DownloadUtil.fetchVideoInfoFromUrl(
@@ -6671,14 +6789,17 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         taskKey = id,
                     )
                     .onSuccess {
+                        Log.i(TAG, "fetchInfo: success id=$id")
                         info = it
                         downloadState = ReadyWithInfo
                         viewState = Task.ViewState.fromVideoInfo(it)
                     }
                     .onFailure { throwable ->
                         if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "fetchInfo: canceled id=$id")
                             return@onFailure
                         }
+                        Log.e(TAG, "fetchInfo: failed id=$id", throwable)
                         task.downloadState = Error(throwable = throwable, action = FetchInfo)
                         NotificationUtil.notifyError(
                             title = viewState.title,
@@ -6697,6 +6818,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             execute()
             return
         }
+        Log.i(TAG, "download: start id=$id title=${viewState.title}")
         scope
             .launch(Dispatchers.Default) {
                 DownloadUtil.downloadVideo(
@@ -6735,6 +6857,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         // Clean up throttle tracking for this task
                         clearProgressTracking(id)
 
+                        Log.i(TAG, "download: completed id=$id files=${pathList.size}")
                         downloadState = Completed(pathList.firstOrNull())
 
                         // ── RELEASE VIDEOINFO ───────────────────────────────
@@ -6775,8 +6898,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         clearProgressTracking(id)
 
                         if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "download: canceled id=$id")
                             return@onFailure
                         }
+                        Log.e(TAG, "download: failed id=$id", throwable)
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
@@ -6793,6 +6918,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         when (val preState = downloadState) {
             is DownloadState.Cancelable -> {
                 val res = YoutubeDL.destroyProcessById(preState.taskId)
+                Log.d(
+                    TAG,
+                    "cancelImpl: id=$id destroyProcess=$res state=${preState.toStructuralKey()}",
+                )
                 if (res) {
                     preState.job.cancel()
                     val progress = if (preState is Running) preState.progress else null
@@ -6842,6 +6971,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         check(downloadState == Idle)
         check(type is TypeInfo.CustomCommand)
         val template = type.template
+        Log.i(TAG, "execute: start custom command id=$id template=${template.name}")
         scope
             .launch {
                 DownloadUtil.executeCustomCommandTask(url, id, template, preferences) {
@@ -6868,8 +6998,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                     }
                     .onFailure { throwable ->
                         if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "execute: canceled id=$id")
                             return@onFailure
                         }
+                        Log.e(TAG, "execute: failed id=$id", throwable)
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
@@ -6882,6 +7014,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         // Clean up throttle tracking
                         clearProgressTracking(id)
 
+                        Log.i(TAG, "execute: completed id=$id")
                         downloadState = Completed(null)
 
                         // Release VideoInfo for the finished task — see the note in download().
@@ -7368,7 +7501,7 @@ fun NavGraphBuilder.slideInVerticallyComposable(
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
-SIZE: 2.13 KB
+SIZE: 3.04 KB
 ================================================================================
 
 package com.junkfood.seal.ui.common
@@ -7385,11 +7518,26 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
-import coil.compose.AsyncImagePainter
-import coil.imageLoader
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.junkfood.seal.R
 
+/**
+ * Coil 3 migration notes (this is the ONLY file in the project that touches Coil):
+ *  - All imports moved from `coil.*` to `coil3.*`; `crossfade` is now an extension in
+ *    `coil3.request`.
+ *  - The explicit `imageLoader = LocalContext.current.imageLoader` argument is gone: Coil 3's
+ *    `AsyncImage` resolves the singleton ImageLoader itself (`SingletonImageLoader`), which is
+ *    what the old expression returned anyway — same loader, less plumbing.
+ *  - Network fetching is no longer part of Coil's core; the `coil-network-okhttp` artifact in
+ *    app/build.gradle.kts registers an OkHttp-backed fetcher via ServiceLoader. Without it, every
+ *    remote thumbnail would fail. No code here needs to reference it.
+ *  - The `transform`/`onState` parameter types are now `coil3.compose.AsyncImagePainter.State`;
+ *    no external caller passes either parameter (verified across the codebase), so the type
+ *    change is fully contained in this file.
+ */
 @Composable
 fun AsyncImageImpl(
     model: Any?,
@@ -7416,10 +7564,9 @@ fun AsyncImageImpl(
             colorFilter = colorFilter,
         )
     else
-        coil.compose.AsyncImage(
+        AsyncImage(
             model = ImageRequest.Builder(LocalContext.current).data(model).crossfade(true).build(),
             contentDescription = contentDescription,
-            imageLoader = LocalContext.current.imageLoader,
             modifier = modifier,
             transform = transform,
             onState = onState,
@@ -60624,7 +60771,7 @@ Seal
 
 ================================================================================
 FILE: gradle.properties
-SIZE: 1.41 KB
+SIZE: 1.49 KB
 ================================================================================
 
 # Project-wide Gradle settings.
@@ -60634,12 +60781,13 @@ SIZE: 1.41 KB
 # For more details on how to configure your build environment visit
 # http://www.gradle.org/docs/current/userguide/build_environment.html
 # Specifies the JVM arguments used for the daemon process.
-# The setting is particularly useful for tweaking memory settings.
-org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-# When configured, Gradle will run in incubating parallel mode.
-# This option should only be used with decoupled projects. More details, visit
-# http://www.gradle.org/docs/current/userguide/multi_project_builds.html#sec:decoupled_projects
-# org.gradle.parallel=true
+# 4 GB heap + 1 GB metaspace: AGP 8.13 + Kotlin 2.3 + R8 full-mode comfortably exceed the old
+# 2 GB ceiling on this project; GitHub's standard public-repo runners have 16 GB, so this is safe.
+org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8
+# Build :app and :color in parallel (they are decoupled).
+org.gradle.parallel=true
+# Reuse task outputs across builds (and across CI runs via the setup-gradle action's cache).
+org.gradle.caching=true
 # AndroidX package structure to make it clearer which packages are bundled with the
 # Android operating system, and which are packaged with your app"s APK
 # https://developer.android.com/topic/libraries/support-library/androidx-rn
@@ -60654,61 +60802,103 @@ ABI_FILTERS=arm64-v8a
 android.nonFinalResIds=true
 org.gradle.configuration-cache=true
 
+
 ================================================================================
 FILE: gradle/libs.versions.toml
-SIZE: 7.27 KB
+SIZE: 10.43 KB
 ================================================================================
 
 [versions]
-accompanist = "0.34.0"
-androidGradlePlugin = "8.7.2"
-androidxComposeBom = "2025.03.01"
-androidxCore = "1.15.0"
-androidMaterial = "1.12.0"
-androidxAppCompat = "1.7.0"
-androidxActivity = "1.10.1"
+# ── Build toolchain ───────────────────────────────────────────────────────────
+# AGP 8.13.2 is the latest 8.x patch (its R8 officially supports Kotlin 2.3).
+# We deliberately stay on the 8.x line: AGP 9.x removes the legacy variant API
+# (used below for APK renaming), requires the built-in-Kotlin migration, and —
+# decisively — the Sentry Android Gradle plugin does not yet support AGP 9
+# (it fails with "Extension of type 'AppExtension' does not exist").
+# 8.13.x supports compileSdk/targetSdk 36 (Android 16), which is all we need.
+androidGradlePlugin = "8.13.2"
+
+# Kotlin 2.3.20 (March 2026 tooling release). Kotlin 2.4.0 shipped days ago but
+# is too fresh for the Room/KSP/Sentry-plugin ecosystem on a CI-only project;
+# 2.3.20 is the newest version with a fully settled plugin ecosystem.
+kotlin = "2.3.20"
+
+# KSP now uses standalone versioning (decoupled from Kotlin). 2.3.9 is the
+# latest release (May 2026) and the version the official KSP docs pair with
+# current Kotlin releases.
+ksp = "2.3.9"
+
+# ── AndroidX / Compose ────────────────────────────────────────────────────────
+# STABLE Compose BOM (no more `compose-bom-alpha`). 2026.05.00 maps to Compose
+# 1.11.x and Material 3 1.4.0 — all stable. This removes the pre-release-BOM
+# risk that was flagged in earlier debugging rounds.
+androidxComposeBom = "2026.05.00"
+
+# The androidx.compose.material:material-icons-* artifacts stopped being
+# published after 1.7.x and were REMOVED from the Compose BOM. 1.7.8 is the
+# final version and is forward-compatible with Compose 1.11 (it only depends on
+# stable ui/ runtime APIs). It must now carry an explicit version.
+composeMaterialIcons = "1.7.8"
+
+androidxCore = "1.19.0"
+androidMaterial = "1.14.0"
+androidxAppCompat = "1.7.1"
+androidxActivity = "1.13.0"
 graphics = "1.0.1"
-constraintLayout = "1.1.0"
+constraintLayout = "1.1.1"
 
-androidxLifecycle = "2.8.7"
-androidxNavigation = "2.8.9"
+androidxLifecycle = "2.10.0"
+androidxNavigation = "2.9.8"
 
-androidxEspresso = "3.5.0"
-androidxTestExt = "1.1.4"
+# androidx.test moved to a unified release train in 2025; these are the latest
+# stable artifact versions from it. (androidTest-only — not part of release builds.)
+androidxEspresso = "3.7.0"
+androidxTestExt = "1.3.0"
 
-
-coil = "2.5.0"
+# ── App libraries ─────────────────────────────────────────────────────────────
+# Coil 3 (package `coil3`). Networking is no longer bundled in coil-core — the
+# coil-network-okhttp artifact below restores http(s) image loading via the
+# OkHttp we already ship. See AsyncImageImpl.kt for the (single-file) migration.
+coil = "3.4.0"
 
 junit4 = "4.13.2"
 
-kotlin = "2.0.20"
+serialization = "1.11.0"
 
-coroutines = "1.9.0"
-datetime = "0.6.1"
-serialization = "1.7.2"
-okhttp = "5.0.0-alpha.10"
+# OkHttp finally left alpha: 5.0.0 went stable in July 2025; 5.4.0 is current.
+# This also unblocks Sentry's OkHttp auto-instrumentation (see app/build.gradle.kts).
+okhttp = "5.4.0"
 
-room = "2.6.1"
-ksp = "2.0.20-1.0.25"
+room = "2.8.4"
 
 youtubedlAndroid = "0.17.3"
 
-mmkv = "1.3.12"
-# pin to v1.3.x for 32-bit support
+# MMKV 2.x is 64-bit only. That is now fine: minSdk 35 (Android 15) devices are
+# 64-bit, and the build no longer produces 32-bit APKs (see app/build.gradle.kts).
+# The old "pin to v1.3.x for 32-bit support" constraint is gone.
+mmkv = "2.4.0"
 
-koin = "4.0.0"
+koin = "4.2.1"
 
-ktfmt = "0.20.1"
+ktfmt = "0.26.0"
 
-# Sentry SDK (io.sentry:sentry-android, the core + NDK umbrella) and the Sentry Android Gradle
-# plugin. The plugin (6.10.0) bundles/targets this SDK version. If you ever add more io.sentry:*
-# artifacts, keep them all on `sentry` (or adopt io.sentry:sentry-bom) so the SDK doesn't trip its
-# deliberate "mixed versions" init crash.
+# accompanist-permissions is alive and current at 0.37.x. accompanist-webview
+# and accompanist-pager-indicators were REMOVED upstream after 0.34/0.35, so the
+# two artifacts that still use them stay pinned to the last version that ships
+# them. They only use stable Compose/AndroidView APIs, so they remain
+# binary-compatible with Compose 1.11. (Long-term: migrate WebViewPage to a raw
+# AndroidView and the one HorizontalPagerIndicator usage to a custom composable.)
+accompanist = "0.37.3"
+accompanistLegacy = "0.34.0"
+
+# Sentry SDK (io.sentry:sentry-android + sentry-okhttp) and the Sentry Android
+# Gradle plugin. 8.43.1 (June 3, 2026) and plugin 6.10.0 are both the latest
+# releases — already current. Keep all io.sentry:* artifacts on the same
+# `sentry` version to avoid the SDK's deliberate "mixed versions" init crash.
 sentry = "8.43.1"
 sentryGradlePlugin = "6.10.0"
 
 [libraries]
-
 
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
@@ -60718,14 +60908,16 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
-accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanist" }
-accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanist" }
+# Removed upstream after 0.34/0.35 — pinned to the last published version (see note above).
+accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanistLegacy" }
+accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanistLegacy" }
 
-#androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom-alpha", version.ref = "androidxComposeBom" }
+# Stable BOM — was `compose-bom-alpha` pinned to a pre-release.
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
-androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended" }
+# No longer in the BOM — explicit (final) version required, see [versions].
+androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeMaterialIcons" }
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 
@@ -60751,26 +60943,21 @@ androidx-test-ext = { group = "androidx.test.ext", name = "junit-ktx", version.r
 
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxEspresso" }
 
-
-coil-kt-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+# Coil 3: compose bindings + the OkHttp network fetcher (auto-registered via
+# service loader — no code needed beyond having it on the classpath).
+coil-kt-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 
-kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
-kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "datetime" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 
-
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-
-#youtubedl-android-library = { group = "com.github.yausername.youtubedl_android", name = "library", version.ref = "youtubedlAndroid" }
-#youtubedl-android-ffmpeg = { group = "com.github.yausername.youtubedl_android", name = "ffmpeg", version.ref = "youtubedlAndroid" }
-#youtubedl-android-aria2c = { group = "com.github.yausername.youtubedl_android", name = "aria2c", version.ref = "youtubedlAndroid" }
 
 youtubedl-android-library = { group = "io.github.junkfood02.youtubedl-android", name = "library", version.ref = "youtubedlAndroid" }
 youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", name = "ffmpeg", version.ref = "youtubedlAndroid" }
@@ -60779,6 +60966,9 @@ youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", n
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+# Required by the Sentry Gradle plugin's OKHTTP instrumentation feature, which
+# is now enabled (okhttp is stable). Same version as sentry-android — mandatory.
+sentry-okhttp = { group = "io.sentry", name = "sentry-okhttp", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
@@ -60823,13 +61013,12 @@ core = ["androidx-activity-compose",
 
 ================================================================================
 FILE: gradle/wrapper/gradle-wrapper.properties
-SIZE: .22 KB
+SIZE: .19 KB
 ================================================================================
 
-#Mon Oct 23 22:26:59 CST 2023
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.11.1-bin.zip
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.5-bin.zip
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 
@@ -61124,7 +61313,7 @@ if "%OS%"=="Windows_NT" endlocal
 
 ================================================================================
 FILE: settings.gradle.kts
-SIZE: .43 KB
+SIZE: .61 KB
 ================================================================================
 
 pluginManagement {
@@ -61135,7 +61324,9 @@ pluginManagement {
     }
 }
 plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version("0.4.0")
+    // Resolves and downloads the JDK requested by `kotlin { jvmToolchain(21) }` when the build
+    // host doesn't already have it. 1.0.0 is the current stable release (was 0.4.0).
+    id("org.gradle.toolchains.foojay-resolver-convention") version ("1.0.0")
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -61146,8 +61337,9 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Seal"
-include (":app")
+include(":app")
 include(":color")
+
 
 ================================================================================
 FILE: translations/README-ar.md
