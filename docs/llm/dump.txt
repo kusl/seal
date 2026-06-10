@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Wed Jun 10 01:22:24 PM EDT 2026
+Generated: Wed Jun 10 03:40:34 PM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -976,13 +976,21 @@ jobs:
 
 ================================================================================
 FILE: .github/workflows/release.yml
-SIZE: 7.52 KB
+SIZE: 8.65 KB
 ================================================================================
 
 # .github/workflows/release.yml
 #
 # Triggers on every push to `main` and produces a signed, full (non-pre-release)
 # GitHub Release from the `generic` product flavor.
+#
+# APK naming now happens HERE (see the "Rename APKs" step), not in Gradle:
+# AGP 9 removed the legacy variant API (`applicationVariants` +
+# BaseVariantOutputImpl.outputFileName) that app/build.gradle.kts used for the
+# rename, and the public replacement can only copy APKs to a second directory.
+# Renaming the files in place right before publishing reproduces the exact old
+# names ("Seal-<version>-<flavor>-<abi>-<buildType>.apk") with zero dependence
+# on AGP internals.
 #
 # Version auto-bumps on every build using a timestamp-based scheme:
 #   Tag format:  v2.0.0-alpha.YYYYMMDD.HHMM
@@ -1120,7 +1128,21 @@ jobs:
             -PversionNameOverride="${{ steps.version.outputs.name }}" \
             -PversionCodeOverride="${{ steps.version.outputs.code }}"
 
-      # ── 9. Debug: show what was produced ───────────────────────────────────
+      # ── 9. Rename APKs to the historical naming scheme ─────────────────────
+      #
+      # AGP's default output names are "app-<flavor>-<abi>-<buildType>.apk".
+      # Replacing the leading "app-" with "Seal-<version>-" reproduces exactly
+      # what the (now removed, AGP-9-incompatible) Gradle rename produced, so
+      # Obtainium's filename matching keeps working unchanged.
+      - name: Rename APKs
+        run: |
+          shopt -s nullglob
+          cd app/build/outputs/apk/generic/release
+          for apk in app-*.apk; do
+            mv -v "$apk" "Seal-${{ steps.version.outputs.name }}-${apk#app-}"
+          done
+
+      # ── 10. Debug: show what was produced ──────────────────────────────────
       - name: List produced APKs
         run: |
           echo "=== All APK files ==="
@@ -1132,7 +1154,7 @@ jobs:
             $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner verify --print-certs "$apk" 2>&1 || echo "NOT SIGNED"
           done
 
-      # ── 10. Create GitHub Release ──────────────────────────────────────────
+      # ── 11. Create GitHub Release ──────────────────────────────────────────
       #
       # The glob pattern must match the actual Gradle output directory structure:
       #   app/build/outputs/apk/<flavor>/<buildType>/*.apk
@@ -2992,7 +3014,7 @@ Public License instead of this License.  But first, please read
 
 ================================================================================
 FILE: README.md
-SIZE: 17.24 KB
+SIZE: 17.61 KB
 ================================================================================
 
 <div align="center">
@@ -3083,7 +3105,7 @@ For most devices the **arm64-v8a** APK is the right choice. A **universal** APK 
 Signed releases are built automatically via GitHub Actions on every push to `main` and published to [GitHub Releases](https://github.com/kusl/seal/releases).
 
 > [!Note]
-> This fork requires **Android 15 or later** (minSdk 35). If you need Android 7–14 support, use the [upstream release](https://github.com/JunkFood02/Seal/releases/latest/) instead.
+> This fork requires **Android 14 or later** (minSdk 34). If you need Android 7–13 support, use the [upstream release](https://github.com/JunkFood02/Seal/releases/latest/) instead.
 
 ---
 
@@ -3112,9 +3134,9 @@ A persistent UI freeze after heavy app-switching — where the app stops respond
 
 This build integrates [Sentry](https://sentry.io) for automatic crash, ANR, and performance reporting. See the full disclosure in the [Crash & ANR Reporting](#-crash--anr-reporting-sentry) section below.
 
-### Android 15+ Only (minSdk 35)
+### Android 14+ Only (minSdk 34)
 
-This fork targets Android 15+ exclusively (`minSdk = 35`, `compileSdk = targetSdk = 36`). This cleans up a large number of SDK version guards that were constant-true or constant-false at the old `minSdk = 24`, and enables using newer platform APIs unconditionally.
+This fork targets Android 14+ (`minSdk = 34`, `compileSdk = targetSdk = 37`). Compared with upstream's `minSdk = 24` this still removes a large number of SDK version guards that were constant-true or constant-false, while `compileSdk`/`targetSdk` 37 keep the build on the current Android 17 platform (a hard requirement of `androidx.core` 1.19.0). Note that only 64-bit APKs (arm64-v8a, x86_64) are produced — MMKV 2.x ships no 32-bit libraries — so the rare 32-bit-only Android 14 device cannot install this fork.
 
 ### Dependency Modernisation (June 2026)
 
@@ -3122,11 +3144,11 @@ All libraries updated to their June 2026 latest-stable releases:
 
 | Library | Old | New |
 |---|---|---|
-| AGP | 8.7.2 | 8.13.2 (stays on 8.x — AGP 9 breaks the variant API used for APK naming and the Sentry Gradle plugin) |
-| Gradle wrapper | 8.11.1 | 8.14.5 |
-| Kotlin | 2.0.20 | 2.3.20 |
+| AGP | 8.7.2 | 9.1.1 (new DSL + built-in Kotlin; required for compileSdk 37 — APK naming moved to the release workflow, Sentry plugin 6.x supports AGP 9) |
+| Gradle wrapper | 8.11.1 | 9.5.1 |
+| Kotlin | 2.0.20 | 2.4.0 (compiled by AGP 9's built-in Kotlin; the `kotlin-android` plugin is no longer applied) |
 | KSP | 2.0.20-1.0.25 | 2.3.9 (now independently versioned) |
-| Compose BOM | compose-bom-**alpha** 2025.03.01 | **compose-bom 2026.05.00** (stable; maps to M3 1.4.0) |
+| Compose BOM | compose-bom-**alpha** 2025.03.01 | **compose-bom 2026.05.01** (stable; maps to M3 1.4.x) |
 | material-icons-extended | from BOM | 1.7.8 pinned (removed from BOM; 1.7.8 is the final release) |
 | Coil | 2.5.0 | 3.4.0 + `coil-network-okhttp` (network fetcher split out in Coil 3; both artifacts required) |
 | OkHttp | 5.0.0-alpha.10 | 5.4.0 stable (enables Sentry OkHttp instrumentation) |
@@ -3143,7 +3165,7 @@ All libraries updated to their June 2026 latest-stable releases:
 
 - Builds happen exclusively via GitHub Actions — there is no local build workflow.
 - Signed APKs are published to GitHub Releases on every push to `main` using a timestamp-based version scheme (`2.0.0-alpha.YYYYMMDD.HHMM`).
-- The Gradle daemon heap was raised from 2 GB to 4 GB + 1 GB metaspace to comfortably fit AGP 8.13 + Kotlin 2.3 + R8 full-mode.
+- The Gradle daemon heap was raised from 2 GB to 4 GB + 1 GB metaspace to comfortably fit AGP 9.1 + Kotlin 2.4 + R8 full-mode.
 - Parallel builds and build caching are enabled; the `setup-gradle` action caches across CI runs.
 - 32-bit ABI splits (`armeabi-v7a`, `x86`) removed — only `arm64-v8a`, `x86_64`, and `universal` are produced. The surviving ABI version-code offsets are unchanged (arm64=2, x86_64=4) for Obtainium update continuity.
 
@@ -3262,7 +3284,7 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: app/build.gradle.kts
-SIZE: 12.87 KB
+SIZE: 16.02 KB
 ================================================================================
 
 @file:Suppress("UnstableApiUsage")
@@ -3276,15 +3298,18 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // NOTE: org.jetbrains.kotlin.android is intentionally NOT applied. AGP 9
+    // provides built-in Kotlin and applying the standalone plugin under the new
+    // DSL fails with "Cannot add extension with name 'kotlin'". The Kotlin
+    // *version* (2.4.0) is supplied via the kotlin-gradle-plugin classpath
+    // dependency in the root build.gradle.kts.
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.room)
-    alias(libs.plugins.ktfmt.gradle)
     // Sentry Android Gradle plugin: handles (optional) R8 mapping upload and the bytecode
-    // auto-instrumentation we configure in the `sentry { }` block below. Applied only here in
-    // `:app` (mirroring how ktfmt is applied), so no change to the root build.gradle.kts is needed.
+    // auto-instrumentation we configure in the `sentry { }` block below. AGP 9 support landed in
+    // plugin 5.12.2; we are on 6.x. Applied only here in `:app`.
     alias(libs.plugins.sentry)
 }
 
@@ -3294,10 +3319,12 @@ val splitApks = !project.hasProperty("noSplits")
 
 val abiFilterList = (properties["ABI_FILTERS"] as String).split(';')
 
-// 64-bit only as of the Android-15+ baseline (minSdk 35): every Android 15 device is 64-bit, and
-// MMKV 2.x ships no 32-bit native libraries. armeabi-v7a / x86 are therefore gone from the splits
-// below. The numeric codes for the SURVIVING ABIs are unchanged (arm64-v8a=2, x86_64=4) so the
-// per-ABI versionCode offsets stay identical and Obtainium updates keep working.
+// 64-bit only: MMKV 2.x ships no 32-bit native libraries, so armeabi-v7a / x86 stay excluded from
+// the splits below even though minSdk is back down to 34 (Android 14). The few 32-bit-only
+// Android 14 devices simply cannot install the APK (no matching ABI) — a clean refusal at install
+// time rather than a crash at runtime. The numeric codes for the surviving ABIs are unchanged
+// (arm64-v8a=2, x86_64=4) so the per-ABI versionCode offsets stay identical and Obtainium updates
+// keep working.
 val abiCodes = mapOf("arm64-v8a" to 2, "x86_64" to 4)
 
 // ── Version resolution ────────────────────────────────────────────────────────
@@ -3318,7 +3345,15 @@ val currentVersionCode: Int = if (project.hasProperty("versionCodeOverride")) {
 }
 
 android {
-    compileSdk = 36
+    namespace = "com.junkfood.seal"
+
+    // AGP 9's new SDK DSL. compileSdk 37 (Android 17) is the floor demanded by
+    // androidx.core 1.19.0's AAR metadata; the block form (`release(N)`) is the
+    // canonical style in Google's AGP-9 gradle-recipes and supports the new
+    // minor SDK versions (e.g. 36.1) should we ever need one.
+    compileSdk {
+        version = release(37)
+    }
 
     if (keystorePropertiesFile.exists()) {
         val keystoreProperties = Properties()
@@ -3337,16 +3372,33 @@ android {
 
     defaultConfig {
         applicationId = "com.junkfood.seal"
-        // Android 15+ only, per the project's stated support policy. This makes every
-        // `SDK_INT >= 26/30/33` branch in the codebase constant-true (lint flags them as
-        // ObsoleteSdkInt; they are removed opportunistically in files touched by this round).
-        minSdk = 35
-        targetSdk = 36
-        versionCode = currentVersionCode
 
+        // Android 14+ (minSdk 34). Every `SDK_INT >= 26/30/33/34` guard in the
+        // codebase remains valid; nothing in the app calls an API-35+ symbol
+        // unguarded (audited in this round), so lowering from 35 is purely
+        // additive device coverage.
+        minSdk {
+            version = release(34)
+        }
+
+        // targetSdk 37 opts into Android 17 runtime behavior. The changes were
+        // audited against this app: the headline one — removal of the
+        // orientation/resizability opt-out on large screens — is moot because
+        // MainActivity never locks orientation and the UI is already
+        // WindowSizeClass-adaptive; the notification-view size cap targets
+        // custom RemoteViews we don't use; the background-audio, Bluetooth,
+        // SMS/OTP and Contacts changes don't apply to a downloader.
+        targetSdk {
+            version = release(37)
+        }
+
+        versionCode = currentVersionCode
         versionName = baseVersionName
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables { useSupportLibrary = true }
+
+        // (testInstrumentationRunner is gone: AGP 9 defaults to
+        // androidx.test.runner.AndroidJUnitRunner — exactly the value that was
+        // declared here. vectorDrawables.useSupportLibrary is gone too: it only
+        // ever did anything below minSdk 21.)
 
         // Sentry DSN, exposed to the app as BuildConfig.SENTRY_DSN. A DSN is a *public* client-side
         // identifier (it only permits sending events, never reading them), so it is safe to commit.
@@ -3358,22 +3410,35 @@ android {
             "\"https://765791294bb0c81b06d4784a8913ba1c@o4511444968079360.ingest.de.sentry.io/4511529508995152\"",
         )
 
-        if (splitApks) {
-            splits {
-                abi {
-                    isEnable = true
-                    reset()
-                    // 64-bit only — see the abiCodes note above.
-                    include("arm64-v8a", "x86_64")
-                    isUniversalApk = true
-                }
-            }
-        } else {
+        if (!splitApks) {
             ndk { abiFilters.addAll(abiFilterList) }
         }
     }
 
-    room { schemaDirectory("$projectDir/schemas") }
+    // ABI splits are an android-level block; previously this sat inside
+    // defaultConfig and only compiled via Kotlin-DSL receiver fallthrough.
+    // (AGP 9 removed *density* splits; ABI splits are unaffected.)
+    if (splitApks) {
+        splits {
+            abi {
+                isEnable = true
+                reset()
+                // 64-bit only — see the abiCodes note above.
+                include("arm64-v8a", "x86_64")
+                isUniversalApk = true
+            }
+        }
+    }
+
+    // Pin javac explicitly. With AGP 9's built-in Kotlin, the Kotlin jvmTarget
+    // defaults to compileOptions.targetCompatibility, so this single block now
+    // pins BOTH compilers to 21 bytecode — replacing the old
+    // `kotlin { jvmToolchain(21) }`, which belonged to the removed
+    // org.jetbrains.kotlin.android plugin.
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
 
     androidComponents {
         onVariants { variant ->
@@ -3395,6 +3460,18 @@ android {
             }
         }
     }
+
+    // ── APK naming ────────────────────────────────────────────────────────────
+    // The "Seal-<version>-<flavor>-<abi>-<buildType>.apk" rename that lived here
+    // used android.applicationVariants + BaseVariantOutputImpl — the legacy
+    // variant API that AGP 9 removed outright. The public replacement
+    // (androidComponents + BuiltArtifactsLoader, see the `listenToArtifacts`
+    // gradle-recipe) can only COPY APKs to a second directory, doubling output
+    // handling for a project that publishes exclusively from CI. The rename
+    // therefore moved to the single place artifacts are published:
+    // .github/workflows/release.yml ("Rename APKs" step), which produces
+    // byte-identical filenames to the old Gradle logic. Do not reintroduce a
+    // Gradle-side rename via internal AGP types.
 
     buildTypes {
         release {
@@ -3444,21 +3521,26 @@ android {
 
     lint { disable.addAll(listOf("MissingTranslation", "ExtraTranslation", "MissingQuantity")) }
 
-    applicationVariants.all {
-        outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "Seal-${defaultConfig.versionName}-${name}.apk"
-        }
-    }
-
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
         jniLibs.useLegacyPackaging = true
     }
     androidResources { generateLocaleConfig = true }
-
-    namespace = "com.junkfood.seal"
 }
+
+// Resolve a real JDK 21 for compilation (foojay convention in settings does the
+// download if the host lacks one). Google's own AGP-9 recipes configure Android
+// modules through the standard java-toolchain DSL like this.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// The Room Gradle plugin registers a *project-level* extension; it previously
+// sat inside android{} and only resolved through Kotlin-DSL receiver
+// fallthrough. Same configuration, honest scope.
+room { schemaDirectory("$projectDir/schemas") }
 
 // ── Sentry Gradle plugin configuration ────────────────────────────────────────
 //
@@ -3479,8 +3561,8 @@ sentry {
     includeProguardMapping.set(true)
     autoUploadProguardMapping.set(sentryAuthToken.map { it.isNotBlank() }.orElse(false))
 
-    // We declare every io.sentry:* artifact explicitly in the version catalog (sentry-android and,
-    // now, sentry-okhttp), so the plugin's auto-installation stays off — versions are pinned by us,
+    // We declare every io.sentry:* artifact explicitly in the version catalog (sentry-android and
+    // sentry-okhttp), so the plugin's auto-installation stays off — versions are pinned by us,
     // in one place, on one shared `sentry` version.
     autoInstallation { enabled.set(false) }
 
@@ -3493,8 +3575,8 @@ sentry {
     //                            these power Sentry's server-side "DB/File-I/O on the main thread"
     //                            ANR root-cause detection.
     //   • OKHTTP              → spans + breadcrumbs for every OkHttp call (update checks, sponsor
-    //                            list). Enabled now that okhttp is on a stable 5.x release; backed
-    //                            by the io.sentry:sentry-okhttp artifact added in dependencies.
+    //                            list). Backed by the io.sentry:sentry-okhttp artifact in
+    //                            dependencies.
     //   • logcat (VERBOSE)    → turns every android.util.Log.* call into a Sentry breadcrumb, so the
     //                            app's existing logging shows up on the timeline of every event.
     //
@@ -3520,10 +3602,6 @@ sentry {
     // Don't send the plugin's own build-time telemetry to Sentry.
     telemetry.set(false)
 }
-
-ktfmt { kotlinLangStyle() }
-
-kotlin { jvmToolchain(21) }
 
 dependencies {
     implementation(project(":color"))
@@ -4437,7 +4515,7 @@ SIZE: 6.53 KB
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/App.kt
-SIZE: 28.63 KB
+SIZE: 28.64 KB
 ================================================================================
 
 package com.junkfood.seal
@@ -4617,8 +4695,8 @@ class App : Application() {
             )
         }
 
-        // minSdk is 35: the modern PackageInfoFlags overload always exists, so the old
-        // `if (SDK_INT >= 33)` fork is gone.
+        // minSdk is 34 (≥ 33): the modern PackageInfoFlags overload always exists, so the
+        // old `if (SDK_INT >= 33)` fork is gone.
         packageInfo =
             packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
         DynamicColors.applyToActivitiesIfAvailable(this)
@@ -4654,7 +4732,7 @@ class App : Application() {
         if (!PreferenceUtil.containsKey(COMMAND_DIRECTORY)) {
             COMMAND_DIRECTORY.updateString(videoDownloadDir)
         }
-        // minSdk 35 ≥ 26: notification channels always exist; the version gate is gone.
+        // minSdk 34 ≥ 26: notification channels always exist; the version gate is gone.
         NotificationUtil.createNotificationChannel()
 
         installGlobalCrashHandler()
@@ -4964,7 +5042,7 @@ class App : Application() {
 
         fun getVersionReport(): String {
             val versionName = packageInfo.versionName
-            // minSdk 35 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
+            // minSdk 34 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
             // always exists, so both legacy forks (and the dead `val page` that sat here) are gone.
             val versionCode = packageInfo.longVersionCode
             val release = Build.VERSION.RELEASE_OR_CODENAME
@@ -5731,7 +5809,7 @@ object Downloader {
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/MainActivity.kt
-SIZE: 4.17 KB
+SIZE: 4.18 KB
 ================================================================================
 
 package com.junkfood.seal
@@ -5764,7 +5842,7 @@ class MainActivity : AppCompatActivity() {
         // ── Two lines used to sit here; both are deliberately GONE. Do not reintroduce them. ──
         //
         // 1. `runBlocking { setLanguage(…) }` behind an `if (SDK_INT < 33)` guard:
-        //    minSdk is now 35, so the branch could never execute — pure dead code (the AndroidX
+        //    minSdk is now 34 (≥ 33), so the branch could never execute — pure dead code (the AndroidX
         //    per-app-locales service in the manifest handles locale persistence on 33+).
         //
         // 2. `context = this.baseContext` — the single biggest memory hazard found in this round.
@@ -57826,30 +57904,50 @@ class ExampleUnitTest {
 
 ================================================================================
 FILE: build.gradle.kts
-SIZE: .52 KB
+SIZE: 1.83 KB
 ================================================================================
+
+// The buildscript block must come first in a Kotlin-DSL build script.
+//
+// Why it exists at all: AGP 9's built-in Kotlin has a *runtime* dependency on
+// the Kotlin Gradle plugin and bundles KGP 2.2.10. Google's documented way to
+// compile with a NEWER Kotlin (we want 2.4.0, the latest stable) is to put the
+// kotlin-gradle-plugin — and, to keep the processor toolchain consistent, the
+// KSP plugin — on the build classpath explicitly; Gradle's highest-version
+// conflict resolution then makes built-in Kotlin use them.
+// https://developer.android.com/build/releases/agp-9-0-0-release-notes
+//   ("Runtime dependency on Kotlin Gradle plugin" → "Upgrade to a higher KGP version")
+//
+// ⚠ Version catalogs are not reliably accessible inside `buildscript {}`, so
+// these two literals are intentionally hardcoded. Keep them in lockstep with
+// the `kotlin` and `ksp` entries in gradle/libs.versions.toml.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0")
+        classpath("com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.9")
+    }
+}
 
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.android) apply false
+    // org.jetbrains.kotlin.android is GONE: AGP 9 ships built-in Kotlin and the
+    // standalone plugin is incompatible with the new DSL. The compiler-plugin
+    // subplugins below (serialization, Compose) still apply per-module and
+    // attach to the compilation that built-in Kotlin runs.
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.room) apply false
 }
 
-buildscript {
-    repositories {
-        mavenCentral()
-        google()
-    }
-}
-
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
 }
-
 
 
 ================================================================================
@@ -57861,7 +57959,7 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: buildSrc/build.gradle.kts
-SIZE: .18 KB
+SIZE: .35 KB
 ================================================================================
 
 plugins { `kotlin-dsl` }
@@ -57871,10 +57969,10 @@ repositories {
     google()
 }
 
-dependencies {
-    implementation(gradleApi())
-    implementation(localGroovy())
-}
+// The previous explicit `gradleApi()` and `localGroovy()` dependencies are gone:
+// the kotlin-dsl plugin already puts the Gradle API on the compile classpath,
+// and nothing in buildSrc is written in Groovy. Version.kt needs no
+// dependencies at all.
 
 kotlin { jvmToolchain(21) }
 
@@ -57955,29 +58053,43 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: color/build.gradle.kts
-SIZE: 1.16 KB
+SIZE: 1.87 KB
 ================================================================================
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    // No org.jetbrains.kotlin.android here either — AGP 9's built-in Kotlin
+    // compiles this module's sources. The Compose compiler subplugin still
+    // applies (Monet.kt and friends are @Composable) and attaches to the
+    // built-in compilation.
     alias(libs.plugins.compose.compiler)
 }
 
-// Single source of truth for the JVM target. The old file *also* declared Java 1.8 via a top-level
-// `java {}` block and a (duplicated) `compileOptions {}` — leaving javac on 1.8 while Kotlin
-// targeted 21, a latent jvm-target mismatch that newer AGP/KGP versions reject. Both blocks are
-// gone; the toolchain below now configures javac and kotlinc consistently.
-kotlin {
-    jvmToolchain(21)
-}
 android {
-    compileSdk = 36
-    defaultConfig {
-        // Matches :app — the library is never consumed anywhere else.
-        minSdk = 35
-    }
     namespace = "com.junkfood.seal.color"
+
+    compileSdk {
+        version = release(37)
+    }
+
+    defaultConfig {
+        // Matches :app — the library is never consumed anywhere else. (AGP 9
+        // also *requires* consumers to compile with the same-or-higher
+        // compileSdk than their libraries, which :app satisfies at 37.)
+        minSdk {
+            version = release(34)
+        }
+    }
+
+    // Single source of truth for the JVM bytecode level, shared with :app.
+    // Built-in Kotlin derives its jvmTarget from targetCompatibility, so this
+    // block pins javac AND kotlinc to 21 — replacing the old
+    // `kotlin { jvmToolchain(21) }` from the removed kotlin-android plugin.
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
     buildTypes {
         release {
             proguardFiles(
@@ -57987,6 +58099,15 @@ android {
         }
     }
 }
+
+// Resolve a real JDK 21 for compilation (foojay convention in settings.gradle.kts
+// downloads one if the build host lacks it) — same pattern as :app.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 dependencies {
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
@@ -61146,7 +61267,7 @@ Seal
 
 ================================================================================
 FILE: gradle.properties
-SIZE: 1.49 KB
+SIZE: 1.67 KB
 ================================================================================
 
 # Project-wide Gradle settings.
@@ -61156,17 +61277,14 @@ SIZE: 1.49 KB
 # For more details on how to configure your build environment visit
 # http://www.gradle.org/docs/current/userguide/build_environment.html
 # Specifies the JVM arguments used for the daemon process.
-# 4 GB heap + 1 GB metaspace: AGP 8.13 + Kotlin 2.3 + R8 full-mode comfortably exceed the old
+# 4 GB heap + 1 GB metaspace: AGP 9.1 + Kotlin 2.4 + R8 full-mode comfortably exceed the old
 # 2 GB ceiling on this project; GitHub's standard public-repo runners have 16 GB, so this is safe.
 org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8
 # Build :app and :color in parallel (they are decoupled).
 org.gradle.parallel=true
 # Reuse task outputs across builds (and across CI runs via the setup-gradle action's cache).
 org.gradle.caching=true
-# AndroidX package structure to make it clearer which packages are bundled with the
-# Android operating system, and which are packaged with your app"s APK
-# https://developer.android.com/topic/libraries/support-library/androidx-rn
-android.useAndroidX=true
+org.gradle.configuration-cache=true
 # Kotlin code style for this project: "official" or "obsolete":
 kotlin.code.style=official
 # Enables namespacing of each library's R class so that its R class includes only the
@@ -61174,47 +61292,66 @@ kotlin.code.style=official
 # thereby reducing the size of the R class for that library
 android.nonTransitiveRClass=true
 ABI_FILTERS=arm64-v8a
-android.nonFinalResIds=true
-org.gradle.configuration-cache=true
+#
+# Deliberately ABSENT (AGP 9 made them defaults — keeping them would be noise):
+#   android.useAndroidX=true      → default true since AGP 9.0
+#   android.nonFinalResIds=true   → non-final R-class behavior is the AGP 9 default
+# Also deliberately absent: every AGP 9 opt-out escape hatch (android.newDsl,
+# android.builtInKotlin, android.enableLegacyVariantApi, ...). This project runs
+# on the new DSL + built-in Kotlin natively, which is mandatory in AGP 10 anyway.
 
 
 ================================================================================
 FILE: gradle/libs.versions.toml
-SIZE: 10.43 KB
+SIZE: 11.59 KB
 ================================================================================
 
 [versions]
 # ── Build toolchain ───────────────────────────────────────────────────────────
-# AGP 8.13.2 is the latest 8.x patch (its R8 officially supports Kotlin 2.3).
-# We deliberately stay on the 8.x line: AGP 9.x removes the legacy variant API
-# (used below for APK renaming), requires the built-in-Kotlin migration, and —
-# decisively — the Sentry Android Gradle plugin does not yet support AGP 9
-# (it fails with "Extension of type 'AppExtension' does not exist").
-# 8.13.x supports compileSdk/targetSdk 36 (Android 16), which is all we need.
-androidGradlePlugin = "8.13.2"
+# AGP 9.1.1 is the latest stable release that supports compileSdk 37 ("Android
+# Gradle plugin 9.1.1 supports Android API level 37.0 and below" — official
+# release notes, April 2026). compileSdk 37 is now mandatory: androidx.core
+# 1.19.0 declares minCompileSdk=37 / minAgp=9.1.0 in its AAR metadata, which is
+# exactly what broke the previous AGP-8.13.2 build.
+#
+# AGP 9 consequences absorbed by this catalog:
+#   • Built-in Kotlin: the org.jetbrains.kotlin.android plugin is INCOMPATIBLE
+#     with AGP 9's new DSL and must not be applied — its [plugins] entry is gone.
+#     AGP itself now drives the Kotlin compilation. The Kotlin *version* is
+#     raised above AGP's bundled 2.2.10 via an explicit kotlin-gradle-plugin
+#     classpath dependency in the root build.gradle.kts (Google's documented
+#     mechanism) — keep that literal in lockstep with `kotlin` below.
+#   • The legacy variant API (android.applicationVariants) is removed; the APK
+#     rename that used it now lives in .github/workflows/release.yml.
+#   • AGP 9.1.x requires Gradle ≥ 9.1.0 and JDK ≥ 17 (we build on 21).
+androidGradlePlugin = "9.1.1"
 
-# Kotlin 2.3.20 (March 2026 tooling release). Kotlin 2.4.0 shipped days ago but
-# is too fresh for the Room/KSP/Sentry-plugin ecosystem on a CI-only project;
-# 2.3.20 is the newest version with a fully settled plugin ecosystem.
-kotlin = "2.3.20"
+# Kotlin 2.4.0 (June 2026) is the latest stable language release; JetBrains
+# documents explicit compatibility with Gradle 9.5. The serialization and
+# compose-compiler subplugins below ride this same version, and the root
+# build.gradle.kts pins kotlin-gradle-plugin:2.4.0 on the build classpath so
+# AGP 9's built-in Kotlin compiles with 2.4.0 instead of its bundled 2.2.10.
+kotlin = "2.4.0"
 
-# KSP now uses standalone versioning (decoupled from Kotlin). 2.3.9 is the
-# latest release (May 2026) and the version the official KSP docs pair with
-# current Kotlin releases.
+# KSP versions are standalone (decoupled from the Kotlin compiler) since 2.3.0.
+# AGP 9 / built-in-Kotlin support landed in 2.3.1, and Google's own AGP-9
+# upgrade guidance (last updated 2026-06-03) requires ≥ 2.3.6. 2.3.9 is the
+# latest release. Mirrored on the root build classpath next to KGP — keep the
+# two literals in lockstep with this entry.
 ksp = "2.3.9"
 
 # ── AndroidX / Compose ────────────────────────────────────────────────────────
-# STABLE Compose BOM (no more `compose-bom-alpha`). 2026.05.00 maps to Compose
-# 1.11.x and Material 3 1.4.0 — all stable. This removes the pre-release-BOM
-# risk that was flagged in earlier debugging rounds.
-androidxComposeBom = "2026.05.00"
+# Latest stable Compose BOM. 2026.05.01 is a patch release above the 2026.05.00
+# previously pinned here; it maps to Compose 1.11.x / Material 3 1.4.x stable.
+androidxComposeBom = "2026.05.01"
 
 # The androidx.compose.material:material-icons-* artifacts stopped being
 # published after 1.7.x and were REMOVED from the Compose BOM. 1.7.8 is the
 # final version and is forward-compatible with Compose 1.11 (it only depends on
-# stable ui/ runtime APIs). It must now carry an explicit version.
+# stable ui/runtime APIs). It must carry an explicit version.
 composeMaterialIcons = "1.7.8"
 
+# core 1.19.0 is the artifact that forces the compileSdk-37 / AGP-9.1 floor.
 androidxCore = "1.19.0"
 androidMaterial = "1.14.0"
 androidxAppCompat = "1.7.1"
@@ -61225,13 +61362,12 @@ constraintLayout = "1.1.1"
 androidxLifecycle = "2.10.0"
 androidxNavigation = "2.9.8"
 
-# androidx.test moved to a unified release train in 2025; these are the latest
-# stable artifact versions from it. (androidTest-only — not part of release builds.)
+# androidx.test unified release train; androidTest-only — not in release builds.
 androidxEspresso = "3.7.0"
 androidxTestExt = "1.3.0"
 
 # ── App libraries ─────────────────────────────────────────────────────────────
-# Coil 3 (package `coil3`). Networking is no longer bundled in coil-core — the
+# Coil 3 (package `coil3`). Networking is not bundled in coil-core — the
 # coil-network-okhttp artifact below restores http(s) image loading via the
 # OkHttp we already ship. See AsyncImageImpl.kt for the (single-file) migration.
 coil = "3.4.0"
@@ -61240,22 +61376,19 @@ junit4 = "4.13.2"
 
 serialization = "1.11.0"
 
-# OkHttp finally left alpha: 5.0.0 went stable in July 2025; 5.4.0 is current.
-# This also unblocks Sentry's OkHttp auto-instrumentation (see app/build.gradle.kts).
+# OkHttp 5.x stable line; also backs Sentry's OkHttp auto-instrumentation.
 okhttp = "5.4.0"
 
 room = "2.8.4"
 
 youtubedlAndroid = "0.17.3"
 
-# MMKV 2.x is 64-bit only. That is now fine: minSdk 35 (Android 15) devices are
-# 64-bit, and the build no longer produces 32-bit APKs (see app/build.gradle.kts).
-# The old "pin to v1.3.x for 32-bit support" constraint is gone.
+# MMKV 2.x is 64-bit only. The build ships only arm64-v8a / x86_64 APKs, so on
+# the rare 32-bit-only Android 14 device the installer simply reports "no
+# matching ABI" instead of the app crashing — acceptable for a minSdk-34 fork.
 mmkv = "2.4.0"
 
 koin = "4.2.1"
-
-ktfmt = "0.26.0"
 
 # accompanist-permissions is alive and current at 0.37.x. accompanist-webview
 # and accompanist-pager-indicators were REMOVED upstream after 0.34/0.35, so the
@@ -61267,9 +61400,12 @@ accompanist = "0.37.3"
 accompanistLegacy = "0.34.0"
 
 # Sentry SDK (io.sentry:sentry-android + sentry-okhttp) and the Sentry Android
-# Gradle plugin. 8.43.1 (June 3, 2026) and plugin 6.10.0 are both the latest
-# releases — already current. Keep all io.sentry:* artifacts on the same
-# `sentry` version to avoid the SDK's deliberate "mixed versions" init crash.
+# Gradle plugin. AGP 9 support shipped in plugin 5.12.2 (getsentry/
+# sentry-android-gradle-plugin#1004); 6.10.0 (June 3, 2026) is the latest
+# release and is verified compatible — the previous build configured cleanly
+# with it and only failed later at the AAR-metadata check. Keep all io.sentry:*
+# artifacts on the same `sentry` version to avoid the SDK's deliberate
+# "mixed versions" init crash.
 sentry = "8.43.1"
 sentryGradlePlugin = "6.10.0"
 
@@ -61287,7 +61423,6 @@ accompanist-permissions = { group = "com.google.accompanist", name = "accompanis
 accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanistLegacy" }
 accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanistLegacy" }
 
-# Stable BOM — was `compose-bom-alpha` pinned to a pre-release.
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
 
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
@@ -61341,20 +61476,24 @@ youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", n
 mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
 
 sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
-# Required by the Sentry Gradle plugin's OKHTTP instrumentation feature, which
-# is now enabled (okhttp is stable). Same version as sentry-android — mandatory.
+# Required by the Sentry Gradle plugin's OKHTTP instrumentation feature. Same
+# version as sentry-android — mandatory.
 sentry-okhttp = { group = "io.sentry", name = "sentry-okhttp", version.ref = "sentry" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
+# NOTE: there is deliberately no `kotlin-android` plugin entry anymore. AGP 9's
+# built-in Kotlin replaces org.jetbrains.kotlin.android, and applying that
+# plugin under the new DSL is a hard configuration error ("Cannot add extension
+# with name 'kotlin'..."). The serialization and Compose compiler subplugins
+# below remain — they attach to the Kotlin compilation that built-in Kotlin
+# runs, and are the supported way to enable those compiler plugins on AGP 9.
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 room = { id = "androidx.room", version.ref = "room" }
-ktfmt-gradle = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 sentry = { id = "io.sentry.android.gradle", version.ref = "sentryGradlePlugin" }
 
 
@@ -61393,7 +61532,7 @@ SIZE: .19 KB
 
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.5-bin.zip
+distributionUrl=https\://services.gradle.org/distributions/gradle-9.5.1-bin.zip
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 
@@ -61688,7 +61827,7 @@ if "%OS%"=="Windows_NT" endlocal
 
 ================================================================================
 FILE: settings.gradle.kts
-SIZE: .61 KB
+SIZE: .85 KB
 ================================================================================
 
 pluginManagement {
@@ -61699,8 +61838,8 @@ pluginManagement {
     }
 }
 plugins {
-    // Resolves and downloads the JDK requested by `kotlin { jvmToolchain(21) }` when the build
-    // host doesn't already have it. 1.0.0 is the current stable release (was 0.4.0).
+    // Resolves and downloads the JDK requested by the `java { toolchain }` blocks in :app/:color
+    // (and buildSrc's jvmToolchain) when the build host doesn't already have it.
     id("org.gradle.toolchains.foojay-resolver-convention") version ("1.0.0")
 }
 dependencyResolutionManagement {
@@ -61708,7 +61847,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        mavenLocal()
+        // mavenLocal() is gone: it made resolution depend on whatever happened to be in a
+        // developer's ~/.m2, and this project builds exclusively on clean CI runners where
+        // it is always empty. Removing it makes every build hermetic and reproducible.
     }
 }
 rootProject.name = "Seal"
