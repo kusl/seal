@@ -446,4 +446,5 @@
     <string name="saved_urls">Uložené odkazy</string>
     <string name="add_new_url">Přidat nový odkaz</string>
     <string name="add_to">Přidat do %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
