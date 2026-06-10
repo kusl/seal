@@ -19,7 +19,7 @@ android {
         // also *requires* consumers to compile with the same-or-higher
         // compileSdk than their libraries, which :app satisfies at 37.)
         minSdk {
-            version = release(34)
+            version = release(33)
         }
     }
 

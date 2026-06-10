@@ -16,7 +16,7 @@
 #   • The legacy variant API (android.applicationVariants) is removed; the APK
 #     rename that used it now lives in .github/workflows/release.yml.
 #   • AGP 9.1.x requires Gradle ≥ 9.1.0 and JDK ≥ 17 (we build on 21).
-androidGradlePlugin = "9.1.1"
+androidGradlePlugin = "9.2.1"
 
 # Kotlin 2.4.0 (June 2026) is the latest stable language release; JetBrains
 # documents explicit compatibility with Gradle 9.5. The serialization and

@@ -79,7 +79,10 @@ android {
         }
     }
 
-    buildFeatures { buildConfig = true }
+    buildFeatures {
+        buildConfig = true
+        resValues = true
+    }
 
     defaultConfig {
         applicationId = "com.junkfood.seal"
@@ -89,7 +92,7 @@ android {
         // unguarded (audited in this round), so lowering from 35 is purely
         // additive device coverage.
         minSdk {
-            version = release(34)
+            version = release(33)
         }
 
         // targetSdk 37 opts into Android 17 runtime behavior. The changes were
