@@ -2,7 +2,7 @@ kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; ti
 mine
 origin
 
-real	0m0.016s
+real	0m0.002s
 user	0m0.000s
 sys	0m0.002s
 * remote origin
@@ -19,9 +19,9 @@ sys	0m0.002s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.352s
-user	0m0.013s
-sys	0m0.012s
+real	0m0.232s
+user	0m0.014s
+sys	0m0.008s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -30,48 +30,43 @@ sys	0m0.012s
     main tracked
     v1.x tracked
   Local refs configured for 'git push':
-    main pushes to main (up to date)
+    main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.636s
-user	0m0.008s
+real	0m0.509s
+user	0m0.009s
 sys	0m0.008s
 
-real	0m0.313s
-user	0m0.017s
+real	0m0.134s
+user	0m0.010s
 sys	0m0.014s
 On branch main
-Your branch is ahead of 'origin/main' by 53 commits.
+Your branch is ahead of 'origin/main' by 55 commits.
   (use "git push" to publish your local commits)
 
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
-	modified:   app/src/main/res/values-az/strings.xml
-	modified:   app/src/main/res/values-cs/strings.xml
-	modified:   app/src/main/res/values-es/strings.xml
-	modified:   app/src/main/res/values-fil/strings.xml
-	modified:   app/src/main/res/values-hi/strings.xml
-	modified:   app/src/main/res/values-in/strings.xml
-	modified:   app/src/main/res/values-pa/strings.xml
-	modified:   app/src/main/res/values-pt/strings.xml
-	modified:   app/src/main/res/values-sr/strings.xml
-	modified:   app/src/main/res/values-uk/strings.xml
-	modified:   app/src/main/res/values-zh-rCN/strings.xml
-	modified:   app/src/main/res/values-zh-rTW/strings.xml
-	modified:   app/src/main/res/values/strings.xml
-	modified:   docs/llm/output.txt
+	modified:   docs/llm/claude.md
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
-real	0m0.030s
-user	0m0.016s
-sys	0m0.012s
-Everything up-to-date
+real	0m0.008s
+user	0m0.001s
+sys	0m0.007s
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (5/5), 937 bytes | 937.00 KiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To github.com:kusl/seal.git
+   613be758..5ae3a0b9  main -> main
 
-real	0m0.550s
-user	0m0.005s
-sys	0m0.009s
+real	0m1.232s
+user	0m0.009s
+sys	0m0.012s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -83,9 +78,9 @@ sys	0m0.009s
     main pushes to main (up to date)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.542s
-user	0m0.009s
-sys	0m0.006s
+real	0m0.454s
+user	0m0.011s
+sys	0m0.005s
 ==============================================
   Generating Clean Project Export
 ==============================================
@@ -461,85 +456,59 @@ Processed: translations/README-zh_Hant.md
 
 Export Complete: docs/llm/dump.txt
 
-real	0m3.840s
-user	0m1.922s
-sys	0m2.555s
+real	0m3.755s
+user	0m1.965s
+sys	0m2.488s
 On branch main
-Your branch is ahead of 'origin/main' by 53 commits.
+Your branch is ahead of 'origin/main' by 55 commits.
   (use "git push" to publish your local commits)
 
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
-	modified:   app/src/main/res/values-az/strings.xml
-	modified:   app/src/main/res/values-cs/strings.xml
-	modified:   app/src/main/res/values-es/strings.xml
-	modified:   app/src/main/res/values-fil/strings.xml
-	modified:   app/src/main/res/values-hi/strings.xml
-	modified:   app/src/main/res/values-in/strings.xml
-	modified:   app/src/main/res/values-pa/strings.xml
-	modified:   app/src/main/res/values-pt/strings.xml
-	modified:   app/src/main/res/values-sr/strings.xml
-	modified:   app/src/main/res/values-uk/strings.xml
-	modified:   app/src/main/res/values-zh-rCN/strings.xml
-	modified:   app/src/main/res/values-zh-rTW/strings.xml
-	modified:   app/src/main/res/values/strings.xml
+	modified:   docs/llm/claude.md
 	modified:   docs/llm/dump.txt
-	modified:   docs/llm/output.txt
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
-real	0m0.009s
-user	0m0.003s
-sys	0m0.005s
+real	0m0.021s
+user	0m0.014s
+sys	0m0.007s
 warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
 
-real	0m0.049s
-user	0m0.033s
-sys	0m0.014s
+real	0m0.043s
+user	0m0.037s
+sys	0m0.005s
 On branch main
-Your branch is ahead of 'origin/main' by 53 commits.
+Your branch is ahead of 'origin/main' by 55 commits.
   (use "git push" to publish your local commits)
 
 Changes to be committed:
   (use "git restore --staged <file>..." to unstage)
-	modified:   app/src/main/res/values-az/strings.xml
-	modified:   app/src/main/res/values-cs/strings.xml
-	modified:   app/src/main/res/values-es/strings.xml
-	modified:   app/src/main/res/values-fil/strings.xml
-	modified:   app/src/main/res/values-hi/strings.xml
-	modified:   app/src/main/res/values-in/strings.xml
-	modified:   app/src/main/res/values-pa/strings.xml
-	modified:   app/src/main/res/values-pt/strings.xml
-	modified:   app/src/main/res/values-sr/strings.xml
-	modified:   app/src/main/res/values-uk/strings.xml
-	modified:   app/src/main/res/values-zh-rCN/strings.xml
-	modified:   app/src/main/res/values-zh-rTW/strings.xml
-	modified:   app/src/main/res/values/strings.xml
+	modified:   docs/llm/claude.md
 	modified:   docs/llm/dump.txt
-	modified:   docs/llm/output.txt
 
 
-real	0m0.024s
-user	0m0.011s
-sys	0m0.012s
-[main 613be758] run dump
- 15 files changed, 119 insertions(+), 73 deletions(-)
+real	0m0.022s
+user	0m0.014s
+sys	0m0.008s
+[main baf06c8a] run dump
+ 2 files changed, 180 insertions(+), 1 deletion(-)
 
-real	0m0.048s
-user	0m0.031s
-sys	0m0.015s
-Enumerating objects: 67, done.
-Counting objects: 100% (67/67), done.
+real	0m0.044s
+user	0m0.022s
+sys	0m0.020s
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (23/23), done.
-Writing objects: 100% (36/36), 28.64 KiB | 14.32 MiB/s, done.
-Total 36 (delta 17), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (17/17), completed with 17 local objects.
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (6/6), 2.98 KiB | 1016.00 KiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
 To github.com:kusl/seal.git
-   37f14cf5..613be758  main -> main
+   5ae3a0b9..baf06c8a  main -> main
 
-real	0m1.670s
+real	0m1.943s
 user	0m0.037s
 sys	0m0.019s
 kushal@fedora:~/src/kotlin/Seal$ 
