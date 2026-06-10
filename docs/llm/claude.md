@@ -7698,3 +7698,182 @@ Claude is AI and can make mistakes. Please double-check cited sources.
 
 
 
+61
+36 
+
+Please fix everything correctly. 
+Please give full files for all files you change. 
+And please make sure the FULL file path for each of the files is obvious. 
+We have files with the same name in multiple places. 
+Why? 
+
+also I decided to allow sdk 34 
+
+Run ./gradlew assembleGenericRelease \
+Calculating task graph as no cached configuration is available for tasks: assembleGenericRelease
+> Task :buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :buildSrc:compileKotlin UP-TO-DATE
+> Task :buildSrc:compileJava NO-SOURCE
+> Task :buildSrc:compileGroovy NO-SOURCE
+> Task :buildSrc:pluginDescriptors UP-TO-DATE
+> Task :buildSrc:processResources NO-SOURCE
+> Task :buildSrc:classes UP-TO-DATE
+> Task :buildSrc:jar UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :color:preBuild UP-TO-DATE
+> Task :color:preReleaseBuild UP-TO-DATE
+> Task :app:preGenericReleaseBuild UP-TO-DATE
+> Task :color:processReleaseNavigationResources FROM-CACHE
+> Task :color:generateReleaseResources FROM-CACHE
+> Task :color:javaPreCompileRelease FROM-CACHE
+> Task :color:packageReleaseResources FROM-CACHE
+> Task :color:extractProguardFiles
+> Task :color:processReleaseManifest FROM-CACHE
+> Task :color:mergeReleaseJniLibFolders
+> Task :app:mergeGenericReleaseJniLibFolders
+> Task :color:mergeReleaseNativeLibs NO-SOURCE
+> Task :color:generateReleaseLibraryProguardRules FROM-CACHE
+> Task :color:copyReleaseJniLibsProjectOnly
+> Task :app:checkGenericReleaseDuplicateClasses
+> Task :color:prepareReleaseArtProfile
+> Task :color:parseReleaseLocalResources FROM-CACHE
+> Task :color:generateReleaseRFile FROM-CACHE
+> Task :app:mergeGenericReleaseArtProfile
+> Task :app:generateGenericReleaseBuildConfig
+> Task :app:generateGenericReleaseResValues FROM-CACHE
+> Task :app:extractGenericReleaseSupportedLocales
+> Task :app:mapGenericReleaseSourceSetPaths
+> Task :color:extractReleaseSupportedLocales FROM-CACHE
+> Task :app:generateGenericReleaseLocaleConfig
+> Task :app:generateGenericReleaseResources
+> Task :app:mergeGenericReleaseNativeLibs
+> Task :app:processGenericReleaseNavigationResources
+> Task :app:javaPreCompileGenericRelease FROM-CACHE
+> Task :color:writeReleaseAarMetadata
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/arm64-v8a/libaria2c.zip.so': The file was not recognized as a valid object file
+> Task :app:stripGenericReleaseDebugSymbols
+
+Unable to strip the following libraries, packaging them as they are: libaria2c.zip.so, libffmpeg.zip.so, libpython.zip.so. Run with --info option to learn more.
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/arm64-v8a/libffmpeg.zip.so': The file was not recognized as a valid object file
+> Task :app:extractGenericReleaseNativeSymbolTables FROM-CACHE
+> Task :app:mergeGenericReleaseNativeDebugMetadata NO-SOURCE
+
+> Task :app:compileGenericReleaseNavigationResources FROM-CACHE
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/arm64-v8a/libpython.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/armeabi-v7a/libaria2c.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/armeabi-v7a/libffmpeg.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/armeabi-v7a/libpython.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/x86/libaria2c.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/x86/libffmpeg.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/x86/libpython.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/x86_64/libaria2c.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/x86_64/libffmpeg.zip.so': The file was not recognized as a valid object file
+
+/usr/local/lib/android/sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip: error: '/home/runner/work/seal/seal/app/build/intermediates/merged_native_libs/genericRelease/mergeGenericReleaseNativeLibs/out/lib/x86_64/libpython.zip.so': The file was not recognized as a valid object file
+
+> Task :app:checkGenericReleaseAarMetadata
+> Task :app:createGenericReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksGenericRelease FROM-CACHE
+> Task :color:extractDeepLinksRelease FROM-CACHE
+> Task :app:packageGenericReleaseResources
+> Task :app:parseGenericReleaseLocalResources
+> Task :app:generateGenericReleaseRFile FROM-CACHE
+> Task :color:mapReleaseSourceSetPaths
+> Task :color:compileReleaseLibraryResources FROM-CACHE
+> Task :app:extractProguardFiles
+> Task :app:mergeGenericReleaseStartupProfile
+> Task :app:collectExternalGenericReleaseDependenciesForSentry FROM-CACHE
+> Task :app:generateGenericReleaseAssets UP-TO-DATE
+> Task :color:generateReleaseAssets UP-TO-DATE
+
+> Task :app:processGenericReleaseMainManifest
+/home/runner/work/seal/seal/app/src/main/AndroidManifest.xml:30:9-41 Warning:
+	android:extractNativeLibs should not be specified in this source AndroidManifest.xml file. See https://d.android.com/guide/topics/manifest/application-element#extractNativeLibs for more information.
+The AGP Upgrade Assistant can remove the attribute from the AndroidManifest.xml file and update the build file accordingly. See https://d.android.com/studio/build/agp-upgrade-assistant for more information.
+
+> Task :color:mergeReleaseAssets
+> Task :app:mergeGenericReleaseAssets
+> Task :app:genericReleaseSentryGenerateIntegrationListTask
+> Task :app:extractGenericReleaseVersionControlInfo
+> Task :color:prepareLintJarForPublish
+> Task :app:processGenericReleaseManifest
+> Task :app:processGenericReleaseManifestForPackage
+> Task :color:stripReleaseDebugSymbols NO-SOURCE
+> Task :color:copyReleaseJniLibsProjectAndLocalJars
+> Task :color:extractDeepLinksForAarRelease FROM-CACHE
+> Task :color:checkReleaseAarMetadata
+> Task :color:writeReleaseLintModelMetadata
+> Task :color:extractReleaseAnnotations
+> Task :app:validateSigningGenericRelease
+> Task :app:writeGenericReleaseAppMetadata
+> Task :app:writeGenericReleaseSigningConfigVersions
+> Task :app:collectGenericReleaseDependencies
+> Task :app:sdkGenericReleaseDependencyData
+> Task :app:mergeGenericReleaseResources
+> Task :app:processGenericReleaseResources
+
+> Task :color:compileReleaseKotlin
+w: file:///home/runner/work/seal/seal/color/src/main/java/io/material/hct/Cam16.kt:381:17 Expected performance impact from inlining is insignificant. Inlining works best for functions with parameters of function types.
+w: file:///home/runner/work/seal/seal/color/src/main/java/io/material/hct/Cam16.kt:383:17 Expected performance impact from inlining is insignificant. Inlining works best for functions with parameters of function types.
+
+> Task :color:compileReleaseJavaWithJavac NO-SOURCE
+> Task :color:mergeReleaseGeneratedProguardFiles
+> Task :color:processReleaseJavaRes
+> Task :color:exportReleaseConsumerProguardFiles
+> Task :color:mergeReleaseConsumerProguardFiles
+> Task :color:bundleLibCompileToJarRelease
+> Task :color:mergeReleaseJavaResource
+> Task :color:generateReleaseLintModel
+> Task :color:generateReleaseLintVitalModel
+> Task :color:minifyReleaseWithR8
+> Task :color:syncReleaseLibJars FROM-CACHE
+> Task :color:bundleLibRuntimeToJarRelease
+> Task :color:bundleReleaseLocalLintAar
+> Task :color:createFullJarRelease
+> Task :app:kspGenericReleaseKotlin
+> Task :color:lintVitalAnalyzeRelease
+
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/ui/page/settings/network/WebViewPage.kt:105:66 Unresolved reference 'abc_action_mode_done'.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:14:17 Unresolved reference 'documentfile'.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:86:25 Unresolved reference 'DocumentFile'.
+> Task :app:compileGenericReleaseKotlin FAILED
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:87:31 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:87:38 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:87:43 Unresolved reference 'exists'.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:88:31 Unresolved reference 'uri'.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:138:13 Unresolved reference 'DocumentFile'.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:146:17 Unresolved reference 'DocumentFile'.
+e: file:///home/runner/work/seal/seal/app/src/main/java/com/junkfood/seal/util/FileUtil.kt:152:39 Unresolved reference 'DocumentFile'.
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileGenericReleaseKotlin' (registered by plugin 'com.android.internal.application').
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 9s
+> Task :app:copyRoomSchemas NO-SOURCE
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1781122716311.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/seal/seal/build/reports/problems/problems-report.html
+81 actionable tasks: 58 executed, 20 from cache, 3 up-to-date
+Configuration cache entry stored.
+Error: Process completed with exit code 1.
