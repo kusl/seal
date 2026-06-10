@@ -6298,3 +6298,9 @@ Total usage: 25% of weekly limit with one prompt and continues
 
 
 
+we made all these changes but didn't update the readme. Please give me a FULL new readme and please make sure to disclose the AI usage in the readme 
+I have included the `dump.txt` as well as `output.txt`
+ with this message. the code in `dump.txt` is the latest code. 
+also please check to make sure I implemented the above correctly. for example is this a new file that lives alongside the old file or does it replace the old file? 
+`color.build.gradle.kts` → `color/build.gradle.kts`
+
