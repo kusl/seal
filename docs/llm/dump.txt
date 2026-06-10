@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Wed Jun 10 11:16:30 AM EDT 2026
+Generated: Wed Jun 10 01:22:24 PM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -34,6 +34,7 @@ DIRECTORY STRUCTURE:
 │   │   └── Project_Default.xml
 │   ├── kotlinc.xml
 │   ├── ktfmt.xml
+│   ├── markdown.xml
 │   ├── migrations.xml
 │   ├── misc.xml
 │   ├── other.xml
@@ -1410,24 +1411,19 @@ SIZE: .13 KB
 
 ================================================================================
 FILE: .idea/compiler.xml
-SIZE: .39 KB
+SIZE: .16 KB
 ================================================================================
 
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="1.8">
-      <module name="Seal.app" target="21" />
-      <module name="Seal.buildSrc" target="21" />
-      <module name="Seal.buildSrc.main" target="21" />
-      <module name="Seal.buildSrc.test" target="21" />
-    </bytecodeTargetLevel>
+    <bytecodeTargetLevel target="21" />
   </component>
 </project>
 
 ================================================================================
 FILE: .idea/deploymentTargetSelector.xml
-SIZE: 1.99 KB
+SIZE: .60 KB
 ================================================================================
 
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1444,37 +1440,6 @@ SIZE: 1.99 KB
           </Target>
         </DropdownSelection>
         <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="BottomBarPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="DownloadPagePreview">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-10-04T15:47:27.481595Z">
-          <Target type="DEFAULT_BOOT">
-            <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/junkfood/.android/avd/Resizable_Experimental_API_VanillaIceCream.avd" />
-            </handle>
-          </Target>
-        </DropdownSelection>
-        <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="Preview">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="Preview - Light">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-10-07T18:32:33.710498Z">
-          <Target type="DEFAULT_BOOT">
-            <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/Users/junkfood/.android/avd/Resizable_Experimental_API_VanillaIceCream.avd" />
-            </handle>
-          </Target>
-        </DropdownSelection>
-        <DialogSelection />
-      </SelectionState>
-      <SelectionState runConfigName="SheetPreview - Dark">
-        <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
   </component>
@@ -1600,13 +1565,14 @@ SIZE: 4.26 KB
 
 ================================================================================
 FILE: .idea/kotlinc.xml
-SIZE: .17 KB
+SIZE: .22 KB
 ================================================================================
 
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="KotlinJpsPluginSettings">
-    <option name="version" value="2.0.20" />
+    <option name="externalSystemId" value="Gradle" />
+    <option name="version" value="2.0.21" />
   </component>
 </project>
 
@@ -1621,6 +1587,20 @@ SIZE: .26 KB
     <option name="enableKtfmt" value="Enabled" />
     <option name="enabled" value="true" />
     <option name="uiFormatterStyle" value="Kotlinlang" />
+  </component>
+</project>
+
+================================================================================
+FILE: .idea/markdown.xml
+SIZE: .29 KB
+================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="MarkdownSettings">
+    <option name="previewPanelProviderInfo">
+      <ProviderInfo name="Compose (experimental)" className="com.intellij.markdown.compose.preview.ComposePanelProvider" />
+    </option>
   </component>
 </project>
 
@@ -1642,9 +1622,10 @@ SIZE: .24 KB
 
 ================================================================================
 FILE: .idea/misc.xml
-SIZE: 2.74 KB
+SIZE: 2.86 KB
 ================================================================================
 
+<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
@@ -1677,7 +1658,8 @@ SIZE: 2.74 KB
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="jbr-21" project-jdk-type="JavaSDK">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_21" default="true" project-jdk-name="jbr-21" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
