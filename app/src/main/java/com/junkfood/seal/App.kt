@@ -1,6 +1,7 @@
 package com.junkfood.seal
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
 import android.content.ClipboardManager
 import android.content.ComponentName
@@ -12,7 +13,10 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
+import android.os.SystemClock
+import android.util.Log
 import androidx.core.content.getSystemService
 import com.google.android.material.color.DynamicColors
 import com.junkfood.seal.download.DownloaderV2
@@ -59,6 +63,7 @@ import org.koin.dsl.module
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        val onCreateStart = SystemClock.uptimeMillis()
 
         // ──────────────────────────────────────────────────────────────────────────────────────
         //  Initialization order is load-bearing here. Do NOT reorder without reading this.
@@ -86,6 +91,11 @@ class App : Application() {
         //    2. applicationScope  — required by the .stateIn(…) above (and DatabaseUtil.init)
         //    3. MMKV.initialize   — PreferenceUtil's getters read from MMKV
         //  None of them depends on Koin or on the heavyweight init below, so this is safe and early.
+        //
+        //  NOTE: this is also the ONLY place App.context may ever be assigned. It must always be
+        //  the *application* context. MainActivity used to overwrite it with the Activity's
+        //  baseContext on every onCreate(), leaking each Activity instance (and its Compose trees)
+        //  for the lifetime of the process — see MainActivity.kt for the full story.
         context = applicationContext
         applicationScope = CoroutineScope(SupervisorJob())
         MMKV.initialize(this)
@@ -101,6 +111,56 @@ class App : Application() {
         // flavor (see app/build.gradle.kts), so F-Droid builds remain completely telemetry-free.
         initSentry()
 
+        // The in-process freeze detector. Sentry's ANRv2 can only report stalls that the OS itself
+        // escalated to a full ANR (≥ 5 s of ignored *input*); the freezes under investigation
+        // recover (or get force-killed) before that, which is exactly why no logs ever appeared.
+        // The watchdog measures main-looper liveness directly with a 2-second threshold and dumps
+        // all thread stacks to logcat, to a rotating file, and (gated on the same flag as
+        // everything else) to Sentry. See MainThreadWatchdog.kt for the full design rationale.
+        MainThreadWatchdog.install(context = this, sentryEnabled = isSentryEnabled)
+
+        // Log every Activity lifecycle transition. Each Log.d below is rewritten into a Sentry
+        // breadcrumb by the Gradle plugin's logcat instrumentation, so when a freeze report or
+        // crash arrives, its timeline shows exactly the app-switching churn (pause/stop/recreate
+        // bursts) that precedes the symptom. Locally: `adb logcat -s AppLifecycle`.
+        registerActivityLifecycleCallbacks(
+            object : ActivityLifecycleCallbacks {
+                private val tag = "AppLifecycle"
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                    Log.d(
+                        tag,
+                        "${activity.javaClass.simpleName} created" +
+                            if (savedInstanceState != null) " (restored)" else "",
+                    )
+                }
+
+                override fun onActivityStarted(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} started")
+                }
+
+                override fun onActivityResumed(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} resumed")
+                }
+
+                override fun onActivityPaused(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} paused")
+                }
+
+                override fun onActivityStopped(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} stopped")
+                }
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
+                    Log.d(tag, "${activity.javaClass.simpleName} saveInstanceState")
+                }
+
+                override fun onActivityDestroyed(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} destroyed")
+                }
+            }
+        )
+
         startKoin {
             androidLogger()
             androidContext(this@App)
@@ -115,12 +175,10 @@ class App : Application() {
             )
         }
 
+        // minSdk is 35: the modern PackageInfoFlags overload always exists, so the old
+        // `if (SDK_INT >= 33)` fork is gone.
         packageInfo =
-            packageManager.run {
-                if (Build.VERSION.SDK_INT >= 33)
-                    getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
-                else getPackageInfo(packageName, 0)
-            }
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
         DynamicColors.applyToActivitiesIfAvailable(this)
 
         clipboard = getSystemService()!!
@@ -140,6 +198,7 @@ class App : Application() {
                 // see it. Report it to Sentry explicitly so initialization failures (a common
                 // source of "the app is broken on some devices" reports) are still visible, then
                 // fall back to the existing on-device crash screen exactly as before.
+                Log.e(TAG, "youtubedl-android initialization failed", th)
                 if (isSentryEnabled) {
                     Sentry.captureException(th)
                 }
@@ -153,9 +212,12 @@ class App : Application() {
         if (!PreferenceUtil.containsKey(COMMAND_DIRECTORY)) {
             COMMAND_DIRECTORY.updateString(videoDownloadDir)
         }
-        if (Build.VERSION.SDK_INT >= 26) NotificationUtil.createNotificationChannel()
+        // minSdk 35 ≥ 26: notification channels always exist; the version gate is gone.
+        NotificationUtil.createNotificationChannel()
 
         installGlobalCrashHandler()
+
+        Log.i(TAG, "App.onCreate completed in ${SystemClock.uptimeMillis() - onCreateStart} ms")
     }
 
     /**
@@ -287,6 +349,8 @@ class App : Application() {
     }
 
     companion object {
+        private const val TAG = "App"
+
         lateinit var clipboard: ClipboardManager
         lateinit var videoDownloadDir: String
         lateinit var audioDownloadDir: String
@@ -326,6 +390,13 @@ class App : Application() {
         //       thread share one consistent view of the flag.
         //    3. If bindService() returns false (system not bringing the service up), release the
         //       connection we passed in, per the Android contract, so nothing leaks.
+        //
+        //  Diagnostics (this round): bindService()/unbindService() are binder IPC calls into
+        //  system_server. Under heavy system load they can take surprisingly long — and because
+        //  both run inside `serviceLock`, a slow call made by the background scheduler can briefly
+        //  block a main-thread caller on the lock. The timing logs below make any such stall
+        //  visible in logcat and (via the logcat instrumentation) as Sentry breadcrumbs, so the
+        //  watchdog's stack dumps can be correlated with a concrete cause.
 
         private val serviceLock = Any()
 
@@ -344,13 +415,18 @@ class App : Application() {
                 override fun onServiceConnected(className: ComponentName, service: IBinder) {
                     // Binding state is tracked synchronously at bind/unbind time (see above), not
                     // here. We keep the cast purely as a sanity check on the returned binder.
-                    @Suppress("UNUSED_VARIABLE")
                     val binder = service as? DownloadService.DownloadServiceBinder
+                    Log.i(
+                        TAG,
+                        "onServiceConnected: ${className.shortClassName}" +
+                            " (binder ok=${binder != null})",
+                    )
                 }
 
                 override fun onServiceDisconnected(arg0: ComponentName) {
                     // The service process went away (e.g. it was killed). Reflect that so a future
                     // startService() will re-bind instead of being short-circuited by a stale flag.
+                    Log.w(TAG, "onServiceDisconnected: ${arg0.shortClassName} — service died")
                     synchronized(serviceLock) { isBound = false }
                 }
             }
@@ -358,7 +434,9 @@ class App : Application() {
         fun startService() =
             synchronized(serviceLock) {
                 if (isBound) return@synchronized
+                Log.i(TAG, "startService: binding DownloadService")
                 val intent = Intent(context.applicationContext, DownloadService::class.java)
+                val bindStart = SystemClock.uptimeMillis()
                 val bringingUp =
                     try {
                         context.applicationContext.bindService(
@@ -367,18 +445,25 @@ class App : Application() {
                             Context.BIND_AUTO_CREATE,
                         )
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.e(TAG, "startService: bindService threw", e)
                         false
                     }
+                val bindMs = SystemClock.uptimeMillis() - bindStart
                 if (bringingUp) {
                     isBound = true
+                    Log.i(TAG, "startService: bound (bindService took $bindMs ms)")
                 } else {
                     // bindService() did not start the service. We must still unbind the connection
                     // we just registered, otherwise it leaks.
+                    Log.w(
+                        TAG,
+                        "startService: bindService returned false after $bindMs ms" +
+                            " — releasing connection",
+                    )
                     try {
                         context.applicationContext.unbindService(connection)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.w(TAG, "startService: cleanup unbindService threw", e)
                     }
                 }
             }
@@ -387,11 +472,15 @@ class App : Application() {
             synchronized(serviceLock) {
                 if (!isBound) return@synchronized
                 isBound = false
+                Log.i(TAG, "stopService: unbinding DownloadService")
+                val unbindStart = SystemClock.uptimeMillis()
                 try {
                     context.applicationContext.unbindService(connection)
+                    val unbindMs = SystemClock.uptimeMillis() - unbindStart
+                    Log.i(TAG, "stopService: unbound (unbindService took $unbindMs ms)")
                 } catch (e: Exception) {
                     // Connection was already unregistered (e.g. the service died). Nothing to do.
-                    e.printStackTrace()
+                    Log.w(TAG, "stopService: unbindService threw — connection already gone", e)
                 }
             }
 
@@ -433,19 +522,10 @@ class App : Application() {
 
         fun getVersionReport(): String {
             val versionName = packageInfo.versionName
-            val page = packageInfo
-            val versionCode =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    packageInfo.longVersionCode
-                } else {
-                    packageInfo.versionCode.toLong()
-                }
-            val release =
-                if (Build.VERSION.SDK_INT >= 30) {
-                    Build.VERSION.RELEASE_OR_CODENAME
-                } else {
-                    Build.VERSION.RELEASE
-                }
+            // minSdk 35 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
+            // always exists, so both legacy forks (and the dead `val page` that sat here) are gone.
+            val versionCode = packageInfo.longVersionCode
+            val release = Build.VERSION.RELEASE_OR_CODENAME
             return StringBuilder()
                 .append("App version: $versionName ($versionCode)\n")
                 .append("Device information: Android $release (API ${Build.VERSION.SDK_INT})\n")
