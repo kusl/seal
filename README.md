@@ -86,7 +86,7 @@ For most devices the **arm64-v8a** APK is the right choice. A **universal** APK 
 Signed releases are built automatically via GitHub Actions on every push to `main` and published to [GitHub Releases](https://github.com/kusl/seal/releases).
 
 > [!Note]
-> This fork requires **Android 15 or later** (minSdk 35). If you need Android 7–14 support, use the [upstream release](https://github.com/JunkFood02/Seal/releases/latest/) instead.
+> This fork requires **Android 14 or later** (minSdk 34). If you need Android 7–13 support, use the [upstream release](https://github.com/JunkFood02/Seal/releases/latest/) instead.
 
 ---
 
@@ -115,9 +115,9 @@ A persistent UI freeze after heavy app-switching — where the app stops respond
 
 This build integrates [Sentry](https://sentry.io) for automatic crash, ANR, and performance reporting. See the full disclosure in the [Crash & ANR Reporting](#-crash--anr-reporting-sentry) section below.
 
-### Android 15+ Only (minSdk 35)
+### Android 14+ Only (minSdk 34)
 
-This fork targets Android 15+ exclusively (`minSdk = 35`, `compileSdk = targetSdk = 36`). This cleans up a large number of SDK version guards that were constant-true or constant-false at the old `minSdk = 24`, and enables using newer platform APIs unconditionally.
+This fork targets Android 14+ (`minSdk = 34`, `compileSdk = targetSdk = 37`). Compared with upstream's `minSdk = 24` this still removes a large number of SDK version guards that were constant-true or constant-false, while `compileSdk`/`targetSdk` 37 keep the build on the current Android 17 platform (a hard requirement of `androidx.core` 1.19.0). Note that only 64-bit APKs (arm64-v8a, x86_64) are produced — MMKV 2.x ships no 32-bit libraries — so the rare 32-bit-only Android 14 device cannot install this fork.
 
 ### Dependency Modernisation (June 2026)
 
@@ -125,11 +125,11 @@ All libraries updated to their June 2026 latest-stable releases:
 
 | Library | Old | New |
 |---|---|---|
-| AGP | 8.7.2 | 8.13.2 (stays on 8.x — AGP 9 breaks the variant API used for APK naming and the Sentry Gradle plugin) |
-| Gradle wrapper | 8.11.1 | 8.14.5 |
-| Kotlin | 2.0.20 | 2.3.20 |
+| AGP | 8.7.2 | 9.1.1 (new DSL + built-in Kotlin; required for compileSdk 37 — APK naming moved to the release workflow, Sentry plugin 6.x supports AGP 9) |
+| Gradle wrapper | 8.11.1 | 9.5.1 |
+| Kotlin | 2.0.20 | 2.4.0 (compiled by AGP 9's built-in Kotlin; the `kotlin-android` plugin is no longer applied) |
 | KSP | 2.0.20-1.0.25 | 2.3.9 (now independently versioned) |
-| Compose BOM | compose-bom-**alpha** 2025.03.01 | **compose-bom 2026.05.00** (stable; maps to M3 1.4.0) |
+| Compose BOM | compose-bom-**alpha** 2025.03.01 | **compose-bom 2026.05.01** (stable; maps to M3 1.4.x) |
 | material-icons-extended | from BOM | 1.7.8 pinned (removed from BOM; 1.7.8 is the final release) |
 | Coil | 2.5.0 | 3.4.0 + `coil-network-okhttp` (network fetcher split out in Coil 3; both artifacts required) |
 | OkHttp | 5.0.0-alpha.10 | 5.4.0 stable (enables Sentry OkHttp instrumentation) |
@@ -146,7 +146,7 @@ All libraries updated to their June 2026 latest-stable releases:
 
 - Builds happen exclusively via GitHub Actions — there is no local build workflow.
 - Signed APKs are published to GitHub Releases on every push to `main` using a timestamp-based version scheme (`2.0.0-alpha.YYYYMMDD.HHMM`).
-- The Gradle daemon heap was raised from 2 GB to 4 GB + 1 GB metaspace to comfortably fit AGP 8.13 + Kotlin 2.3 + R8 full-mode.
+- The Gradle daemon heap was raised from 2 GB to 4 GB + 1 GB metaspace to comfortably fit AGP 9.1 + Kotlin 2.4 + R8 full-mode.
 - Parallel builds and build caching are enabled; the `setup-gradle` action caches across CI runs.
 - 32-bit ABI splits (`armeabi-v7a`, `x86`) removed — only `arm64-v8a`, `x86_64`, and `universal` are produced. The surviving ABI version-code offsets are unchanged (arm64=2, x86_64=4) for Obtainium update continuity.
 

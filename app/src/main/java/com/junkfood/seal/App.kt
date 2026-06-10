@@ -175,8 +175,8 @@ class App : Application() {
             )
         }
 
-        // minSdk is 35: the modern PackageInfoFlags overload always exists, so the old
-        // `if (SDK_INT >= 33)` fork is gone.
+        // minSdk is 34 (≥ 33): the modern PackageInfoFlags overload always exists, so the
+        // old `if (SDK_INT >= 33)` fork is gone.
         packageInfo =
             packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
         DynamicColors.applyToActivitiesIfAvailable(this)
@@ -212,7 +212,7 @@ class App : Application() {
         if (!PreferenceUtil.containsKey(COMMAND_DIRECTORY)) {
             COMMAND_DIRECTORY.updateString(videoDownloadDir)
         }
-        // minSdk 35 ≥ 26: notification channels always exist; the version gate is gone.
+        // minSdk 34 ≥ 26: notification channels always exist; the version gate is gone.
         NotificationUtil.createNotificationChannel()
 
         installGlobalCrashHandler()
@@ -522,7 +522,7 @@ class App : Application() {
 
         fun getVersionReport(): String {
             val versionName = packageInfo.versionName
-            // minSdk 35 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
+            // minSdk 34 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
             // always exists, so both legacy forks (and the dead `val page` that sat here) are gone.
             val versionCode = packageInfo.longVersionCode
             val release = Build.VERSION.RELEASE_OR_CODENAME
