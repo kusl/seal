@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Wed Jun 10 03:40:34 PM EDT 2026
+Generated: Wed Jun 10 04:03:27 PM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -1445,7 +1445,7 @@ SIZE: .16 KB
 
 ================================================================================
 FILE: .idea/deploymentTargetSelector.xml
-SIZE: .60 KB
+SIZE: .59 KB
 ================================================================================
 
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1454,10 +1454,10 @@ SIZE: .60 KB
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-10-08T21:31:16.287350Z">
+        <DropdownSelection timestamp="2026-06-10T19:51:48.147784723Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=29091FDH3007P1" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=2cd1ef82" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -1594,7 +1594,7 @@ SIZE: .22 KB
 <project version="4">
   <component name="KotlinJpsPluginSettings">
     <option name="externalSystemId" value="Gradle" />
-    <option name="version" value="2.0.21" />
+    <option name="version" value="2.3.20" />
   </component>
 </project>
 
@@ -3284,7 +3284,7 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: app/build.gradle.kts
-SIZE: 16.02 KB
+SIZE: 16.05 KB
 ================================================================================
 
 @file:Suppress("UnstableApiUsage")
@@ -3368,7 +3368,10 @@ android {
         }
     }
 
-    buildFeatures { buildConfig = true }
+    buildFeatures {
+        buildConfig = true
+        resValues = true
+    }
 
     defaultConfig {
         applicationId = "com.junkfood.seal"
@@ -3378,7 +3381,7 @@ android {
         // unguarded (audited in this round), so lowering from 35 is purely
         // additive device coverage.
         minSdk {
-            version = release(34)
+            version = release(33)
         }
 
         // targetSdk 37 opts into Android 17 runtime behavior. The changes were
@@ -57372,7 +57375,7 @@ SIZE: .11 KB
 
 ================================================================================
 FILE: app/src/main/res/values/strings.xml
-SIZE: 31.10 KB
+SIZE: 31.15 KB
 ================================================================================
 
 <resources>
@@ -57815,6 +57818,7 @@ SIZE: 31.10 KB
     <string name="saved_urls">Saved links</string>
     <string name="add_new_url">Add new link</string>
     <string name="add_to">Add to %1$s</string>
+    <string name="abc_action_mode_done">done</string>
     <plurals name="item_count">
         <item quantity="one">%d item</item>
         <item quantity="other">%d items</item>
@@ -58077,7 +58081,7 @@ android {
         // also *requires* consumers to compile with the same-or-higher
         // compileSdk than their libraries, which :app satisfies at 37.)
         minSdk {
-            version = release(34)
+            version = release(33)
         }
     }
 
@@ -61324,7 +61328,7 @@ SIZE: 11.59 KB
 #   • The legacy variant API (android.applicationVariants) is removed; the APK
 #     rename that used it now lives in .github/workflows/release.yml.
 #   • AGP 9.1.x requires Gradle ≥ 9.1.0 and JDK ≥ 17 (we build on 21).
-androidGradlePlugin = "9.1.1"
+androidGradlePlugin = "9.2.1"
 
 # Kotlin 2.4.0 (June 2026) is the latest stable language release; JetBrains
 # documents explicit compatibility with Gradle 9.5. The serialization and
