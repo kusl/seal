@@ -7085,3 +7085,5 @@ BUILD FAILED in 1m 3s
 26 actionable tasks: 23 executed, 3 up-to-date
 Configuration cache entry stored.
 Error: Process completed with exit code 1.
+
+Please give FULL files for ALL files that need to change 
