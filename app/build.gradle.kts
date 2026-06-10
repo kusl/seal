@@ -9,15 +9,18 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // NOTE: org.jetbrains.kotlin.android is intentionally NOT applied. AGP 9
+    // provides built-in Kotlin and applying the standalone plugin under the new
+    // DSL fails with "Cannot add extension with name 'kotlin'". The Kotlin
+    // *version* (2.4.0) is supplied via the kotlin-gradle-plugin classpath
+    // dependency in the root build.gradle.kts.
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.room)
-    alias(libs.plugins.ktfmt.gradle)
     // Sentry Android Gradle plugin: handles (optional) R8 mapping upload and the bytecode
-    // auto-instrumentation we configure in the `sentry { }` block below. Applied only here in
-    // `:app` (mirroring how ktfmt is applied), so no change to the root build.gradle.kts is needed.
+    // auto-instrumentation we configure in the `sentry { }` block below. AGP 9 support landed in
+    // plugin 5.12.2; we are on 6.x. Applied only here in `:app`.
     alias(libs.plugins.sentry)
 }
 
@@ -27,10 +30,12 @@ val splitApks = !project.hasProperty("noSplits")
 
 val abiFilterList = (properties["ABI_FILTERS"] as String).split(';')
 
-// 64-bit only as of the Android-15+ baseline (minSdk 35): every Android 15 device is 64-bit, and
-// MMKV 2.x ships no 32-bit native libraries. armeabi-v7a / x86 are therefore gone from the splits
-// below. The numeric codes for the SURVIVING ABIs are unchanged (arm64-v8a=2, x86_64=4) so the
-// per-ABI versionCode offsets stay identical and Obtainium updates keep working.
+// 64-bit only: MMKV 2.x ships no 32-bit native libraries, so armeabi-v7a / x86 stay excluded from
+// the splits below even though minSdk is back down to 34 (Android 14). The few 32-bit-only
+// Android 14 devices simply cannot install the APK (no matching ABI) — a clean refusal at install
+// time rather than a crash at runtime. The numeric codes for the surviving ABIs are unchanged
+// (arm64-v8a=2, x86_64=4) so the per-ABI versionCode offsets stay identical and Obtainium updates
+// keep working.
 val abiCodes = mapOf("arm64-v8a" to 2, "x86_64" to 4)
 
 // ── Version resolution ────────────────────────────────────────────────────────
@@ -51,7 +56,15 @@ val currentVersionCode: Int = if (project.hasProperty("versionCodeOverride")) {
 }
 
 android {
-    compileSdk = 36
+    namespace = "com.junkfood.seal"
+
+    // AGP 9's new SDK DSL. compileSdk 37 (Android 17) is the floor demanded by
+    // androidx.core 1.19.0's AAR metadata; the block form (`release(N)`) is the
+    // canonical style in Google's AGP-9 gradle-recipes and supports the new
+    // minor SDK versions (e.g. 36.1) should we ever need one.
+    compileSdk {
+        version = release(37)
+    }
 
     if (keystorePropertiesFile.exists()) {
         val keystoreProperties = Properties()
@@ -70,16 +83,33 @@ android {
 
     defaultConfig {
         applicationId = "com.junkfood.seal"
-        // Android 15+ only, per the project's stated support policy. This makes every
-        // `SDK_INT >= 26/30/33` branch in the codebase constant-true (lint flags them as
-        // ObsoleteSdkInt; they are removed opportunistically in files touched by this round).
-        minSdk = 35
-        targetSdk = 36
-        versionCode = currentVersionCode
 
+        // Android 14+ (minSdk 34). Every `SDK_INT >= 26/30/33/34` guard in the
+        // codebase remains valid; nothing in the app calls an API-35+ symbol
+        // unguarded (audited in this round), so lowering from 35 is purely
+        // additive device coverage.
+        minSdk {
+            version = release(34)
+        }
+
+        // targetSdk 37 opts into Android 17 runtime behavior. The changes were
+        // audited against this app: the headline one — removal of the
+        // orientation/resizability opt-out on large screens — is moot because
+        // MainActivity never locks orientation and the UI is already
+        // WindowSizeClass-adaptive; the notification-view size cap targets
+        // custom RemoteViews we don't use; the background-audio, Bluetooth,
+        // SMS/OTP and Contacts changes don't apply to a downloader.
+        targetSdk {
+            version = release(37)
+        }
+
+        versionCode = currentVersionCode
         versionName = baseVersionName
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables { useSupportLibrary = true }
+
+        // (testInstrumentationRunner is gone: AGP 9 defaults to
+        // androidx.test.runner.AndroidJUnitRunner — exactly the value that was
+        // declared here. vectorDrawables.useSupportLibrary is gone too: it only
+        // ever did anything below minSdk 21.)
 
         // Sentry DSN, exposed to the app as BuildConfig.SENTRY_DSN. A DSN is a *public* client-side
         // identifier (it only permits sending events, never reading them), so it is safe to commit.
@@ -91,22 +121,35 @@ android {
             "\"https://765791294bb0c81b06d4784a8913ba1c@o4511444968079360.ingest.de.sentry.io/4511529508995152\"",
         )
 
-        if (splitApks) {
-            splits {
-                abi {
-                    isEnable = true
-                    reset()
-                    // 64-bit only — see the abiCodes note above.
-                    include("arm64-v8a", "x86_64")
-                    isUniversalApk = true
-                }
-            }
-        } else {
+        if (!splitApks) {
             ndk { abiFilters.addAll(abiFilterList) }
         }
     }
 
-    room { schemaDirectory("$projectDir/schemas") }
+    // ABI splits are an android-level block; previously this sat inside
+    // defaultConfig and only compiled via Kotlin-DSL receiver fallthrough.
+    // (AGP 9 removed *density* splits; ABI splits are unaffected.)
+    if (splitApks) {
+        splits {
+            abi {
+                isEnable = true
+                reset()
+                // 64-bit only — see the abiCodes note above.
+                include("arm64-v8a", "x86_64")
+                isUniversalApk = true
+            }
+        }
+    }
+
+    // Pin javac explicitly. With AGP 9's built-in Kotlin, the Kotlin jvmTarget
+    // defaults to compileOptions.targetCompatibility, so this single block now
+    // pins BOTH compilers to 21 bytecode — replacing the old
+    // `kotlin { jvmToolchain(21) }`, which belonged to the removed
+    // org.jetbrains.kotlin.android plugin.
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
 
     androidComponents {
         onVariants { variant ->
@@ -128,6 +171,18 @@ android {
             }
         }
     }
+
+    // ── APK naming ────────────────────────────────────────────────────────────
+    // The "Seal-<version>-<flavor>-<abi>-<buildType>.apk" rename that lived here
+    // used android.applicationVariants + BaseVariantOutputImpl — the legacy
+    // variant API that AGP 9 removed outright. The public replacement
+    // (androidComponents + BuiltArtifactsLoader, see the `listenToArtifacts`
+    // gradle-recipe) can only COPY APKs to a second directory, doubling output
+    // handling for a project that publishes exclusively from CI. The rename
+    // therefore moved to the single place artifacts are published:
+    // .github/workflows/release.yml ("Rename APKs" step), which produces
+    // byte-identical filenames to the old Gradle logic. Do not reintroduce a
+    // Gradle-side rename via internal AGP types.
 
     buildTypes {
         release {
@@ -177,21 +232,26 @@ android {
 
     lint { disable.addAll(listOf("MissingTranslation", "ExtraTranslation", "MissingQuantity")) }
 
-    applicationVariants.all {
-        outputs.all {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "Seal-${defaultConfig.versionName}-${name}.apk"
-        }
-    }
-
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
         jniLibs.useLegacyPackaging = true
     }
     androidResources { generateLocaleConfig = true }
-
-    namespace = "com.junkfood.seal"
 }
+
+// Resolve a real JDK 21 for compilation (foojay convention in settings does the
+// download if the host lacks one). Google's own AGP-9 recipes configure Android
+// modules through the standard java-toolchain DSL like this.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// The Room Gradle plugin registers a *project-level* extension; it previously
+// sat inside android{} and only resolved through Kotlin-DSL receiver
+// fallthrough. Same configuration, honest scope.
+room { schemaDirectory("$projectDir/schemas") }
 
 // ── Sentry Gradle plugin configuration ────────────────────────────────────────
 //
@@ -212,8 +272,8 @@ sentry {
     includeProguardMapping.set(true)
     autoUploadProguardMapping.set(sentryAuthToken.map { it.isNotBlank() }.orElse(false))
 
-    // We declare every io.sentry:* artifact explicitly in the version catalog (sentry-android and,
-    // now, sentry-okhttp), so the plugin's auto-installation stays off — versions are pinned by us,
+    // We declare every io.sentry:* artifact explicitly in the version catalog (sentry-android and
+    // sentry-okhttp), so the plugin's auto-installation stays off — versions are pinned by us,
     // in one place, on one shared `sentry` version.
     autoInstallation { enabled.set(false) }
 
@@ -226,8 +286,8 @@ sentry {
     //                            these power Sentry's server-side "DB/File-I/O on the main thread"
     //                            ANR root-cause detection.
     //   • OKHTTP              → spans + breadcrumbs for every OkHttp call (update checks, sponsor
-    //                            list). Enabled now that okhttp is on a stable 5.x release; backed
-    //                            by the io.sentry:sentry-okhttp artifact added in dependencies.
+    //                            list). Backed by the io.sentry:sentry-okhttp artifact in
+    //                            dependencies.
     //   • logcat (VERBOSE)    → turns every android.util.Log.* call into a Sentry breadcrumb, so the
     //                            app's existing logging shows up on the timeline of every event.
     //
@@ -253,10 +313,6 @@ sentry {
     // Don't send the plugin's own build-time telemetry to Sentry.
     telemetry.set(false)
 }
-
-ktfmt { kotlinLangStyle() }
-
-kotlin { jvmToolchain(21) }
 
 dependencies {
     implementation(project(":color"))

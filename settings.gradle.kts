@@ -6,8 +6,8 @@ pluginManagement {
     }
 }
 plugins {
-    // Resolves and downloads the JDK requested by `kotlin { jvmToolchain(21) }` when the build
-    // host doesn't already have it. 1.0.0 is the current stable release (was 0.4.0).
+    // Resolves and downloads the JDK requested by the `java { toolchain }` blocks in :app/:color
+    // (and buildSrc's jvmToolchain) when the build host doesn't already have it.
     id("org.gradle.toolchains.foojay-resolver-convention") version ("1.0.0")
 }
 dependencyResolutionManagement {
@@ -15,7 +15,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        mavenLocal()
+        // mavenLocal() is gone: it made resolution depend on whatever happened to be in a
+        // developer's ~/.m2, and this project builds exclusively on clean CI runners where
+        // it is always empty. Removing it makes every build hermetic and reproducible.
     }
 }
 rootProject.name = "Seal"

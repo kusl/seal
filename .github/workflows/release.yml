@@ -3,6 +3,14 @@
 # Triggers on every push to `main` and produces a signed, full (non-pre-release)
 # GitHub Release from the `generic` product flavor.
 #
+# APK naming now happens HERE (see the "Rename APKs" step), not in Gradle:
+# AGP 9 removed the legacy variant API (`applicationVariants` +
+# BaseVariantOutputImpl.outputFileName) that app/build.gradle.kts used for the
+# rename, and the public replacement can only copy APKs to a second directory.
+# Renaming the files in place right before publishing reproduces the exact old
+# names ("Seal-<version>-<flavor>-<abi>-<buildType>.apk") with zero dependence
+# on AGP internals.
+#
 # Version auto-bumps on every build using a timestamp-based scheme:
 #   Tag format:  v2.0.0-alpha.YYYYMMDD.HHMM
 #   This ensures every push gets a unique, monotonically increasing version.
@@ -139,7 +147,21 @@ jobs:
             -PversionNameOverride="${{ steps.version.outputs.name }}" \
             -PversionCodeOverride="${{ steps.version.outputs.code }}"
 
-      # ── 9. Debug: show what was produced ───────────────────────────────────
+      # ── 9. Rename APKs to the historical naming scheme ─────────────────────
+      #
+      # AGP's default output names are "app-<flavor>-<abi>-<buildType>.apk".
+      # Replacing the leading "app-" with "Seal-<version>-" reproduces exactly
+      # what the (now removed, AGP-9-incompatible) Gradle rename produced, so
+      # Obtainium's filename matching keeps working unchanged.
+      - name: Rename APKs
+        run: |
+          shopt -s nullglob
+          cd app/build/outputs/apk/generic/release
+          for apk in app-*.apk; do
+            mv -v "$apk" "Seal-${{ steps.version.outputs.name }}-${apk#app-}"
+          done
+
+      # ── 10. Debug: show what was produced ──────────────────────────────────
       - name: List produced APKs
         run: |
           echo "=== All APK files ==="
@@ -151,7 +173,7 @@ jobs:
             $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -1)/apksigner verify --print-certs "$apk" 2>&1 || echo "NOT SIGNED"
           done
 
-      # ── 10. Create GitHub Release ──────────────────────────────────────────
+      # ── 11. Create GitHub Release ──────────────────────────────────────────
       #
       # The glob pattern must match the actual Gradle output directory structure:
       #   app/build/outputs/apk/<flavor>/<buildType>/*.apk
