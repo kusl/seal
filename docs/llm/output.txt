@@ -2,9 +2,9 @@ kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; ti
 mine
 origin
 
-real	0m0.002s
-user	0m0.001s
-sys	0m0.001s
+real	0m0.005s
+user	0m0.000s
+sys	0m0.003s
 * remote origin
   Fetch URL: https://github.com/JunkFood02/Seal
   Push  URL: https://github.com/JunkFood02/Seal
@@ -19,9 +19,9 @@ sys	0m0.001s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.234s
-user	0m0.014s
-sys	0m0.013s
+real	0m0.188s
+user	0m0.015s
+sys	0m0.009s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -33,35 +33,45 @@ sys	0m0.013s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.583s
-user	0m0.008s
-sys	0m0.011s
+real	0m0.559s
+user	0m0.006s
+sys	0m0.010s
 
-real	0m0.149s
-user	0m0.012s
-sys	0m0.016s
+real	0m0.128s
+user	0m0.015s
+sys	0m0.012s
 On branch main
-Your branch is ahead of 'origin/main' by 50 commits.
+Your branch is ahead of 'origin/main' by 52 commits.
   (use "git push" to publish your local commits)
 
-nothing to commit, working tree clean
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .idea/deploymentTargetSelector.xml
+	modified:   .idea/kotlinc.xml
+	modified:   app/build.gradle.kts
+	modified:   app/src/main/res/values/strings.xml
+	modified:   color/build.gradle.kts
+	modified:   gradle/libs.versions.toml
 
-real	0m0.008s
-user	0m0.002s
+no changes added to commit (use "git add" and/or "git commit -a")
+
+real	0m0.015s
+user	0m0.003s
 sys	0m0.006s
-Enumerating objects: 69, done.
-Counting objects: 100% (69/69), done.
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (35/35), done.
-Writing objects: 100% (41/41), 59.11 KiB | 11.82 MiB/s, done.
-Total 41 (delta 23), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (23/23), completed with 18 local objects.
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (5/5), 788 bytes | 788.00 KiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
 To github.com:kusl/seal.git
-   10929085..498c038f  main -> main
+   537351b5..3176fa3a  main -> main
 
-real	0m1.690s
-user	0m0.019s
-sys	0m0.019s
+real	0m1.202s
+user	0m0.010s
+sys	0m0.009s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -73,9 +83,9 @@ sys	0m0.019s
     main pushes to main (up to date)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.503s
-user	0m0.010s
-sys	0m0.007s
+real	0m0.514s
+user	0m0.005s
+sys	0m0.008s
 ==============================================
   Generating Clean Project Export
 ==============================================
@@ -451,57 +461,69 @@ Processed: translations/README-zh_Hant.md
 
 Export Complete: docs/llm/dump.txt
 
-real	0m3.703s
-user	0m1.891s
-sys	0m2.486s
+real	0m4.172s
+user	0m2.062s
+sys	0m2.717s
 On branch main
-Your branch is ahead of 'origin/main' by 50 commits.
+Your branch is ahead of 'origin/main' by 52 commits.
   (use "git push" to publish your local commits)
 
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
+	modified:   .idea/deploymentTargetSelector.xml
+	modified:   .idea/kotlinc.xml
+	modified:   app/build.gradle.kts
+	modified:   app/src/main/res/values/strings.xml
+	modified:   color/build.gradle.kts
 	modified:   docs/llm/dump.txt
+	modified:   gradle/libs.versions.toml
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
-real	0m0.008s
-user	0m0.004s
-sys	0m0.003s
+real	0m0.009s
+user	0m0.002s
+sys	0m0.006s
 warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
 
-real	0m0.040s
-user	0m0.030s
-sys	0m0.009s
+real	0m0.045s
+user	0m0.033s
+sys	0m0.011s
 On branch main
-Your branch is ahead of 'origin/main' by 50 commits.
+Your branch is ahead of 'origin/main' by 52 commits.
   (use "git push" to publish your local commits)
 
 Changes to be committed:
   (use "git restore --staged <file>..." to unstage)
+	modified:   .idea/deploymentTargetSelector.xml
+	modified:   .idea/kotlinc.xml
+	modified:   app/build.gradle.kts
+	modified:   app/src/main/res/values/strings.xml
+	modified:   color/build.gradle.kts
 	modified:   docs/llm/dump.txt
+	modified:   gradle/libs.versions.toml
 
 
-real	0m0.023s
-user	0m0.017s
-sys	0m0.005s
-[main 537351b5] run dump
- 1 file changed, 288 insertions(+), 147 deletions(-)
+real	0m0.025s
+user	0m0.015s
+sys	0m0.009s
+[main 37f14cf5] run dump
+ 7 files changed, 26 insertions(+), 18 deletions(-)
 
-real	0m0.042s
-user	0m0.028s
-sys	0m0.013s
-Enumerating objects: 9, done.
-Counting objects: 100% (9/9), done.
-Delta compression using up to 16 threads
-Compressing objects: 100% (4/4), done.
-Writing objects: 100% (5/5), 6.77 KiB | 277.00 KiB/s, done.
-Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
-To github.com:kusl/seal.git
-   498c038f..537351b5  main -> main
-
-real	0m1.540s
-user	0m0.041s
+real	0m0.079s
+user	0m0.042s
 sys	0m0.027s
+Enumerating objects: 36, done.
+Counting objects: 100% (36/36), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (18/18), done.
+Writing objects: 100% (19/19), 2.72 KiB | 2.72 MiB/s, done.
+Total 19 (delta 13), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (13/13), completed with 13 local objects.
+To github.com:kusl/seal.git
+   3176fa3a..37f14cf5  main -> main
+
+real	0m1.570s
+user	0m0.040s
+sys	0m0.023s
 kushal@fedora:~/src/kotlin/Seal$ 

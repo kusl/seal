@@ -443,4 +443,5 @@
     <string name="saved_urls">ਸੇਵ ਕੀਤੇ ਲਿੰਕ</string>
     <string name="add_new_url">ਨਵਾਂ ਲਿੰਕ ਸ਼ਾਮਿਲ ਕਰੋ</string>
     <string name="add_to">%1$s ਵਿੱਚ ਸ਼ਾਮਿਲ ਕਰੋ</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>

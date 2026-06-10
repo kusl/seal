@@ -440,4 +440,5 @@
     <string name="saved_urls">保存的链接</string>
     <string name="add_new_url">添加新链接</string>
     <string name="add_to">添加到 %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>

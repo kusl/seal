@@ -438,7 +438,7 @@
     <string name="saved_urls">Saved links</string>
     <string name="add_new_url">Add new link</string>
     <string name="add_to">Add to %1$s</string>
-    <string name="abc_action_mode_done">done</string>
+    <string name="abc_action_mode_done">Done</string>
     <plurals name="item_count">
         <item quantity="one">%d item</item>
         <item quantity="other">%d items</item>

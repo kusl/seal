@@ -446,4 +446,5 @@
     <string name="add_to">Додај у %1$s</string>
     <string name="add_new_url">Додај нови линк</string>
     <string name="saved_urls">Сачувани линкови</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
