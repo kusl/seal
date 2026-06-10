@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
         // ── Two lines used to sit here; both are deliberately GONE. Do not reintroduce them. ──
         //
         // 1. `runBlocking { setLanguage(…) }` behind an `if (SDK_INT < 33)` guard:
-        //    minSdk is now 35, so the branch could never execute — pure dead code (the AndroidX
+        //    minSdk is now 34 (≥ 33), so the branch could never execute — pure dead code (the AndroidX
         //    per-app-locales service in the manifest handles locale persistence on 33+).
         //
         // 2. `context = this.baseContext` — the single biggest memory hazard found in this round.
