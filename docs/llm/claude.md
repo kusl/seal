@@ -3044,3 +3044,3257 @@ Why this is safe with zero behavioral regression:
 I deliberately did **not** refactor `PreferenceUtil`/`DatabaseUtil` (e.g. making `DatabaseUtil.db` lazy). Their eager-`object` design is upstream behavior and works correctly once the init contract is honored; changing it would risk the kind of subtle regression you want to avoid. Instead I documented the ordering invariant directly in `onCreate()` so a future edit at the top of the method — or a new preference read inside the Sentry lambda — won't silently reintroduce this.
 
 One note for your dependency-upgrade backlog: this whole class lives or dies on Kotlin's static-init order, which is exactly the kind of thing that shifts subtly under compiler/R8 changes — worth keeping the build flavor that disables Sentry (F-Droid) in mind as your canary, since it skips this entire chain.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+the app still freezes and worse there are no logs when this happens. Can you please review the full dump.txt add logging where appropriate, update all packages to the latest available (we only need to support android 15 and later) do not assume google play store is available but otherwise if there is any opportunity to modernize the code, please take it and please give me FULL files for all files you change 
+please remember if you change versions you might need to also update the github actions files
+
+Now let me check a few more key implementation files before researching current library versions.Let me verify exact latest versions directly from the Maven repositories — this avoids any guesswork.OkHttp 5.4.0 released literally yesterday. Now Coil and Room:Coil 3.4.0 confirmed. The AndroidX versions page will give me all the Jetpack libraries in one shot:The GitHub API is in my allowed network domains — much more efficient for batch version checks:Dead catalog entries identified. Final round of version checks — Sentry first:I have everything I need. Let me now write all the files, starting with the version catalog and build system:
+
+please continue
+
+I have all originals. Let me verify a few design details from the transcript before writing the modified files.I have all the originals and the full design confirmed. Let me re-verify a few critical claims against the dump before writing files.
+
+­entially large) VideoInfo now that the
+                        // task is finished. A Completed task is NOT Restartable
+                        // (only Canceled/Error are), the UI renders from
+                        // viewState, the action sheet uses filePath + url, and
+                        // the persisted backup explicitly excludes Completed
+                        // entries — so nothing reads videoInfo after this point.
+                        // Releasing it keeps memory flat as finished downloads
+                        // accumulate in the queue over a long session.
+                        info = null
+
+                        val text =
+                            appContext.getString(
+                                if (pathList.isEmpty()) R.string.status_completed
+                                else R.string.download_finish_notification
+                            )
+                        FileUtil.createIntentForOpeningFile(pathList.firstOrNull()).run {
+                            NotificationUtil.finishNotification(
+                                notificationId,
+                                title = viewState.title,
+                                text = text,
+                                intent =
+                                    if (this != null)
+                                        PendingIntent.getActivity(
+                                            appContext,
+                                            0,
+                                            this,
+                                            PendingIntent.FLAG_IMMUTABLE,
+                                        )
+                                    else null,
+                            )
+                        }
+                    }
+                    .onFailure { throwable ->
+                        // Clean up throttle tracking for this task
+                        clearProgressTracking(id)
+
+                        if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "download: canceled id=$id")
+                            return@onFailure
+                        }
+                        Log.e(TAG, "download: failed id=$id", throwable)
+                        downloadState = Error(throwable = throwable, action = Download)
+                        NotificationUtil.notifyError(
+                            title = viewState.title,
+                            textId = R.string.fetch_info_error_msg,
+                            notificationId = notificationId,
+                            report = throwable.stackTraceToString(),
+                        )
+                    }
+            }
+            .also { job -> downloadState = Running(job = job, taskId = id) }
+    }
+
+    private fun Task.cancelImpl(): Boolean {
+        when (val preState = downloadState) {
+            is DownloadState.Cancelable -> {
+                val res = YoutubeDL.destroyProcessById(preState.taskId)
+                Log.d(
+                    TAG,
+                    "cancelImpl: id=$id destroyProcess=$res state=${preState.toStructuralKey()}",
+                )
+                if (res) {
+                    preState.job.cancel()
+                    val progress = if (preState is Running) preState.progress else null
+                    NotificationUtil.cancelNotification(notificationId)
+                    downloadState =
+                        DownloadState.Canceled(action = preState.action, progress = progress)
+                }
+                // Clean up throttle tracking
+                clearProgressTracking(id)
+                return res
+            }
+            Idle -> {
+                downloadState = DownloadState.Canceled(action = FetchInfo)
+            }
+            ReadyWithInfo -> {
+                downloadState = DownloadState.Canceled(action = Download)
+            }
+
+            else -> {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun Task.restartImpl() {
+        when (val preState = downloadState) {
+            is DownloadState.Restartable -> {
+                downloadState =
+                    when (preState.action) {
+                        Download -> ReadyWithInfo
+                        FetchInfo -> Idle
+                    }
+            }
+            else -> {
+                throw IllegalStateException()
+            }
+        }
+    }
+
+    /**
+     * Execute a custom command task
+     *
+     * @see Task.TypeInfo.CustomCommand
+     */
+    private fun Task.execute() {
+        check(downloadState == Idle)
+        check(type is TypeInfo.CustomCommand)
+        val template = type.template
+        Log.i(TAG, "execute: start custom command id=$id template=${template.name}")
+        scope
+            .launch {
+                DownloadUtil.executeCustomCommandTask(url, id, template, preferences) {
+                        progressPercentage,
+                        _,
+                        text ->
+                        val progress = progressPercentage / 100f
+                        when (downloadState) {
+                            is Running -> {
+                                // Throttle progress updates for custom commands too
+                                updateProgressThrottled(progress, text)
+
+                                NotificationUtil.makeNotificationForCustomCommand(
+                                    notificationId = notificationId,
+                                    taskId = id,
+                                    progress = progressPercentage.toInt(),
+                                    templateName = template.name,
+                                    taskUrl = url,
+                                    text = text,
+                                )
+                            }
+                            else -> {}
+                        }
+                    }
+                    .onFailure { throwable ->
+                        if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "execute: canceled id=$id")
+                            return@onFailure
+                        }
+                        Log.e(TAG, "execute: failed id=$id", throwable)
+                        downloadState = Error(throwable = throwable, action = Download)
+                        NotificationUtil.notifyError(
+                            title = viewState.title,
+                            textId = R.string.fetch_info_error_msg,
+                            notificationId = notificationId,
+                            report = throwable.stackTraceToString(),
+                        )
+                    }
+                    .onSuccess {
+                        // Clean up throttle tracking
+                        clearProgressTracking(id)
+
+                        Log.i(TAG, "execute: completed id=$id")
+                        downloadState = Completed(null)
+
+                        // Release VideoInfo for the finished task — see the note in download().
+                        info = null
+
+                        val text = appContext.getString(R.string.status_completed)
+
+                        NotificationUtil.finishNotification(
+                            notificationId = notificationId,
+                            title = viewState.title,
+                            text = text,
+                            intent = null,
+                        )
+                    }
+            }
+            .also { downloadState = Running(job = it, taskId = id) }
+    }
+}
+```
+
+> One correction to apply when pasting: in the `RELEASE VIDEOINFO` comment above, "pot­entially" should read "potentially" — copy from the version I'm attaching as files below if pasting from chat mangles it.
+
+### 12. `app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt`
+
+The only Coil-touching file in the project (verified by grep). The `imageLoader = LocalContext.current.imageLoader` argument is dropped — Coil 3's `AsyncImage` resolves the same singleton itself. No external caller passes `transform`/`onState` (verified), so the type change to `coil3.compose.AsyncImagePainter.State` is fully contained.
+
+```kotlin
+package com.junkfood.seal.ui.common
+
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.DefaultAlpha
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.junkfood.seal.R
+
+/**
+ * Coil 3 migration notes (this is the ONLY file in the project that touches Coil):
+ *  - All imports moved from `coil.*` to `coil3.*`; `crossfade` is now an extension in
+ *    `coil3.request`.
+ *  - The explicit `imageLoader = LocalContext.current.imageLoader` argument is gone: Coil 3's
+ *    `AsyncImage` resolves the singleton ImageLoader itself (`SingletonImageLoader`), which is
+ *    what the old expression returned anyway — same loader, less plumbing.
+ *  - Network fetching is no longer part of Coil's core; the `coil-network-okhttp` artifact in
+ *    app/build.gradle.kts registers an OkHttp-backed fetcher via ServiceLoader. Without it, every
+ *    remote thumbnail would fail. No code here needs to reference it.
+ *  - The `transform`/`onState` parameter types are now `coil3.compose.AsyncImagePainter.State`;
+ *    no external caller passes either parameter (verified across the codebase), so the type
+ *    change is fully contained in this file.
+ */
+@Composable
+fun AsyncImageImpl(
+    model: Any?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    transform: (AsyncImagePainter.State) -> AsyncImagePainter.State =
+        AsyncImagePainter.DefaultTransform,
+    onState: ((AsyncImagePainter.State) -> Unit)? = null,
+    alignment: Alignment = Alignment.Center,
+    contentScale: ContentScale = ContentScale.Fit,
+    alpha: Float = DefaultAlpha,
+    colorFilter: ColorFilter? = null,
+    filterQuality: FilterQuality = DrawScope.DefaultFilterQuality,
+    isPreview: Boolean = LocalInspectionMode.current,
+) {
+    if (isPreview)
+        Image(
+            painter = painterResource(R.drawable.sample3),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            alignment = alignment,
+            contentScale = contentScale,
+            alpha = alpha,
+            colorFilter = colorFilter,
+        )
+    else
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(model).crossfade(true).build(),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            transform = transform,
+            onState = onState,
+            alignment = alignment,
+            contentScale = contentScale,
+            alpha = alpha,
+            colorFilter = colorFilter,
+            filterQuality = filterQuality,
+        )
+}
+```
+
+### 13–15. The three workflows
+
+`release.yml` and `android_ci.yml`: only action bumps and the Node-24 env removal; every version-generation, keystore, build, verify, and release step is byte-identical. `android.yml`: action bumps only — but note this workflow appears **vestigial and was already broken before this round**: it runs bare `gradle assembleRelease` (all flavors) and then signs from `app/build/outputs/apk/release/`, a path that hasn't existed since flavors were introduced (outputs go to `apk/<flavor>/release/`). I bumped its actions for consistency but recommend simply deleting the file.
+
+`release.yml` and `android_ci.yml` are reproduced in the attached files (and `release.yml` inline earlier in my working copy is identical to the attachment); `android.yml`:
+
+```yaml
+name: Build Release APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: set up JDK 21
+      uses: actions/setup-java@v5
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'gradle'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v4
+
+    - uses: gradle/actions/setup-gradle@v6
+
+    - run: gradle assembleRelease
+
+    - name: Sign app APK
+      id: sign_app
+      uses: ilharp/sign-android-release@nightly
+      with:
+        releaseDir: app/build/outputs/apk/release
+        signingKey: ${{ secrets.SIGNING_KEY }}
+        keyAlias: ${{ secrets.ALIAS }}
+        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: signed-apks
+        path: app/build/outputs/apk/release/*-arm64-v8a-release-signed.apk
+        if-no-files-found: error
+        retention-days: 20
+```
+
+All fifteen files, exactly as reviewed, are attached here for direct download as well:Filename collision between the two `build.gradle.kts` files — copying with disambiguated names:The attached files map to: `libs.versions.toml` → `gradle/`, `gradle-wrapper.properties` → `gradle/wrapper/`, `app.build.gradle.kts` → `app/build.gradle.kts`, `color.build.gradle.kts` → `color/build.gradle.kts`, the three `.yml` files → `.github/workflows/`, the Kotlin files to their existing package paths (`MainThreadWatchdog.kt` is new, next to `App.kt`). Root `build.gradle.kts`, `buildSrc/`, and `proguard-rules.pro` are deliberately untouched.
+
+## Caveats, stated honestly
+
+**One ~85%-confidence item:** whether `material3-window-size-class` still ships inside BOM 2026.05.00 without a version (M3 1.4 deprecated its APIs but I believe the artifact was still published and BOM-managed). If the build fails with "no version for material3-window-size-class", add `version = "1.4.0"` to that one catalog entry — a 30-second fix. Everything else in the version matrix I verified directly against current release listings.
+
+**Known, intended behavior changes** (the only ones): devices below Android 15 can no longer install updates, and 32-bit APKs are no longer produced — both follow from your Android-15+-only policy; the surviving ABI codes are unchanged so Obtainium updates on arm64 devices continue seamlessly. Sentry now also records OkHttp spans/breadcrumbs for the (off-main-thread) update/sponsor checks.
+
+**Deliberately deferred:** Kotlin 2.4.0, AGP 9.x, and BOM 2026.06.x (AGP 9 requires rewriting the APK-renaming variant block, migrating to built-in Kotlin, and waiting on Sentry plugin support — a future round on its own). Roughly 25 untouched files retain now-constant-true `SDK_INT` checks (lint's `ObsoleteSdkInt`, harmless), including QuickDownloadActivity's never-executing `runBlocking` branch. And `android.yml` should probably just be deleted, as flagged above.
+
+## Validating after you push
+
+Watch the `Release Build` run on `main`, install the new release via Obtainium, then reproduce the heavy app-switching. The moment the UI stalls ≥2 s you'll have, for the first time, three independent records: `adb logcat -s MainThreadWatchdog AppLifecycle App DownloaderV2` live; the rotating reports at `Android/data/com.junkfood.seal/files/watchdog/` (readable with any on-device file manager, surviving reboot); and a `MainThreadStallException` issue in Sentry whose stack *is* the main thread at the moment of the freeze — uploaded on next launch even if you force-killed the frozen app. The activity-lifecycle and scheduler breadcrumbs on that event will show exactly what the app was doing in the seconds before. If the context-leak fix already cured the freeze, you'll simply see no stall reports — which is itself the confirmation we've been missing.
+
+
+/
+Claude finished the response
+the app still freezes and worse there are no logs when this happens. Can you please review the full dump.txt add logging where appropriate, update all packages to the latest available (we only need to support android 15 and later) do not assume google play store is available but otherwise if there is any opportunity to modernize the code, please take it and please give me FULL files for all files you change 
+please remember if you change versions you might need to also update the github actions files
+
+Jun 9
+
+Tracing coil imports across AsyncImageImpl dependencies
+Tracing coil imports across AsyncImageImpl dependencies
+Now let me check a few more key implementation files before researching current library versions.
+
+
+Deliberated dependency upgrade strategy and version verification methodology
+Deliberated dependency upgrade strategy and version verification methodology
+Let me verify exact latest versions directly from the Maven repositories — this avoids any guesswork.
+
+
+Orchestrating Room and Sentry plugin updates with AGP
+Orchestrating Room and Sentry plugin updates with AGP
+OkHttp 5.4.0 released literally yesterday. Now Coil and Room:
+
+
+Cataloging AndroidX library versions and dependencies
+Cataloging AndroidX library versions and dependencies
+Coil 3.4.0 confirmed. The AndroidX versions page will give me all the Jetpack libraries in one shot:
+
+
+Pinpointing AGP version specifics for build integrity
+Pinpointing AGP version specifics for build integrity
+The GitHub API is in my allowed network domains — much more efficient for batch version checks:
+
+
+Reconciling Sentry versions and investigating AGP compatibility issues
+Reconciling Sentry versions and investigating AGP compatibility issues
+Dead catalog entries identified. Final round of version checks — Sentry first:
+
+
+Architected comprehensive modernization with targeted logging, dependency updates, and watchdog implementation
+Architected comprehensive modernization with targeted logging, dependency updates, and watchdog implementation
+I have everything I need. Let me now write all the files, starting with the version catalog and build system:
+
+
+Inventoried remaining files for comprehensive review and updates
+Inventoried remaining files for comprehensive review and updates
+please continue
+
+5:11 AM
+
+Excavated transcript details for design specifications
+Excavated transcript details for design specifications
+I have all originals. Let me verify a few design details from the transcript before writing the modified files.
+
+
+Verifying code locations and preserving existing implementations
+Verifying code locations and preserving existing implementations
+I have all the originals and the full design confirmed. Let me re-verify a few critical claims against the dump before writing files.
+
+
+Completed file writes and commenced verification review
+Completed file writes and commenced verification review
+All 15 files written. Now the self-review pass: diffing each against originals to confirm zero unintended changes.
+
+
+Validating App.kt modifications and cleanup implementations
+Validating App.kt modifications and cleanup implementations
+app/build.gradle.kts diff is exactly as intended. Now the critical Kotlin files:
+
+
+Scrutinizing character encoding complexities in text processing
+Scrutinizing character encoding complexities in text processing
+App.kt diff is exactly the intended set. Let me check line lengths since ktfmt's 100-column check is wired into the CI build task:
+
+
+Reconciling ktfmt's formatting rules with comment handling
+Reconciling ktfmt's formatting rules with comment handling
+The awk count is byte-based; box-drawing chars inflate it. Let me get true character counts and isolate only lines I added:
+
+
+Scrutinizing concurrent task limit logic modifications
+Scrutinizing concurrent task limit logic modifications
+All borderline lines (101–103) are verbatim from originals that have passed CI ktfmt for weeks — proven safe. Only my 7 new lines need fixing:
+
+
+Untangling diff return codes and output logic
+Untangling diff return codes and output logic
+MainActivity verified. Now the manifest and remaining config diffs:
+
+
+Verifying libs.versions.toml consistency and alias references
+Verifying libs.versions.toml consistency and alias references
+Manifest diff is exactly the five intended changes. Remaining config files:
+
+
+Verifying build file aliases against catalog
+Verifying build file aliases against catalog
+All diffs verified clean. Final consistency check: the version catalog must define every alias the build files reference.
+
+
+Verified catalog consistency and cross-referenced all dependency aliases
+Verified catalog consistency and cross-referenced all dependency aliases
+Catalog is complete. Final cross-check that the two removed catalog entries are truly unreferenced in any build file:
+
+
+Tracing transitive dependencies through Compose bundles
+Tracing transitive dependencies through Compose bundles
+M2 ModalBottomSheetLayout is used fully-qualified in UI files — I must verify how androidx.compose.material reaches the classpath in the original bundle:
+
+
+Orchestrated comprehensive dependency updates and diagnostic tooling implementation
+Orchestrated comprehensive dependency updates and diagnostic tooling implementation
+Self-review complete — the paren imbalance is just numbered-list markers in comments; all code is balanced. Everything verified. Here's the full Round 5 delivery.
+
+What this round found and ships
+The freeze, round 5 diagnosis. Two findings explain why the freeze persists and why there are still no logs:
+
+MainActivity was corrupting the global context. context = this.baseContext overwrote App.context (used by Room, FileUtil, service binding, toasts) with the Activity's ContextImpl. A ContextImpl holds its Activity via mOuterContext, so every MainActivity recreation — exactly what heavy app-switching causes — leaked the previous Activity with its entire Compose composition. Accumulated leaks → heap growth → GC churn → progressively longer UI pauses. This line is removed; App.context is now assigned exactly once, in App.onCreate(), to the application context.
+Why Sentry never saw anything. Sentry's ANRv2 reads ApplicationExitInfo, i.e. it can only report freezes the OS itself escalated to an ANR (≥5 s of ignored input). Your freezes escape that in all three possible ways: they recover in 1–4 s (never an ANR), or you swipe the app away while frozen (exit recorded as REASON_USER_REQUESTED, not REASON_ANR), or no input event is pending when the stall starts (the 5-second clock never starts). The new MainThreadWatchdog closes the gap: a daemon thread measures main-looper liveness directly with a 2-second threshold and, on stall, dumps the main thread's stack (the smoking gun) plus every other thread to logcat (adb logcat -s MainThreadWatchdog), a rotating file (Android/data/com.junkfood.seal/files/watchdog/), and Sentry (gated on the same flag as everything else — F-Droid stays telemetry-free). Sentry persists the envelope to disk immediately, so even a force-kill mid-freeze uploads on next launch.
+Supporting diagnostics. bindService/unbindService are binder IPC into system_server and run inside serviceLock; under load a slow call from the scheduler can briefly block a main-thread caller on the lock. Timing logs now bracket both. Activity lifecycle callbacks and DownloaderV2 state transitions are also logged — every Log.* call becomes a Sentry breadcrumb via the existing logcat instrumentation, so freeze reports arrive with the app-switching timeline attached.
+The upgrade. Everything moves to June-2026 latest-compatible, Android 15+ only (minSdk 35), with these versions web-verified and locked:
+
+Old	New	Why
+AGP	8.7.2	8.13.2	Latest 8.x. Not 9.x: AGP 9 removes the legacy variant API your APK-renaming uses, and the Sentry plugin fails on it ("AppExtension does not exist")
+Gradle	8.11.1	8.14.5	Latest 8.x, pairs with AGP 8.13
+Kotlin	2.0.20	2.3.20	Newest with a settled plugin ecosystem (2.4.0 is days old — too fresh for CI-only)
+KSP	2.0.20-1.0.25	2.3.9	KSP now versions independently of Kotlin
+Compose BOM	compose-bom-alpha 2025.03.01	compose-bom 2026.05.00 (stable)	Removes the pre-release risk flagged in earlier rounds; M3 1.4.0
+material-icons-extended	from BOM	1.7.8 pinned	Removed from the BOM; 1.7.8 is the final published version
+Coil	2.5.0	3.4.0 + coil-network-okhttp	Coil 3 split the http fetcher out of core — the new artifact is mandatory or thumbnails silently break
+OkHttp	5.0.0-alpha.10	5.4.0 stable	Finally stable → Sentry OKHTTP instrumentation now enabled + sentry-okhttp added
+MMKV	1.3.12	2.4.0	64-bit only — fine now that 32-bit APKs are dropped
+Room	2.6.1	2.8.4	
+Koin	4.0.0	4.2.1	
+serialization	1.7.2	1.11.0	
+ktfmt	0.20.1	0.26.0	
+accompanist	0.34.0 (all)	permissions 0.37.3; webview + pager-indicators stay 0.34.0	The latter two were deleted upstream; 0.34.0 is their last release and keeps supplying the transitive M2 material your ModalBottomSheetLayout usages compile against (verified)
+lifecycle / navigation	2.8.7 / 2.8.9	2.10.0 / 2.9.8	
+core-ktx / activity / appcompat / material / constraint	1.15.0 / 1.10.1 / 1.7.0 / 1.12.0 / 1.1.0	1.19.0 / 1.13.0 / 1.7.1 / 1.14.0 / 1.1.1	
+espresso / test-ext	3.5.0 / 1.1.4	3.7.0 / 1.3.0	
+foojay resolver	0.4.0	1.0.0	
+Actions	checkout v4, java v4, android v3, gradle v4, release v2	v6 / v5 / v4 / v6 / v3	FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 removed (Node 24 is the default now)
+Sentry SDK / plugin	8.43.1 / 6.10.0	unchanged	Already latest
+kotlinx-coroutines-android, kotlinx-datetime	defined	removed	Verified unreferenced in any build file (coroutines arrives transitively)
+compileSdk/targetSdk → 36, splits trimmed to arm64-v8a + x86_64 + universal with the surviving ABI codes unchanged (arm64=2, x86_64=4) so Obtainium versionCode continuity holds. Root build.gradle.kts and buildSrc are unchanged — don't touch them.
+
+All 15 files below are complete replacements. Every prior-round fix is preserved verbatim; I diffed each file against your originals and confirmed the only logic deltas are the ones documented here.
+
+1. gradle/libs.versions.toml
+toml
+[
+versions
+]
+# ── Build toolchain ───────────────────────────────────────────────────────────
+# AGP 8.13.2 is the latest 8.x patch (its R8 officially supports Kotlin 2.3).
+# We deliberately stay on the 8.x line: AGP 9.x removes the legacy variant API
+# (used below for APK renaming), requires the built-in-Kotlin migration, and —
+# decisively — the Sentry Android Gradle plugin does not yet support AGP 9
+# (it fails with "Extension of type 'AppExtension' does not exist").
+# 8.13.x supports compileSdk/targetSdk 36 (Android 16), which is all we need.
+androidGradlePlugin = "8.13.2"
+
+# Kotlin 2.3.20 (March 2026 tooling release). Kotlin 2.4.0 shipped days ago but
+# is too fresh for the Room/KSP/Sentry-plugin ecosystem on a CI-only project;
+# 2.3.20 is the newest version with a fully settled plugin ecosystem.
+kotlin = "2.3.20"
+
+# KSP now uses standalone versioning (decoupled from Kotlin). 2.3.9 is the
+# latest release (May 2026) and the version the official KSP docs pair with
+# current Kotlin releases.
+ksp = "2.3.9"
+
+# ── AndroidX / Compose ────────────────────────────────────────────────────────
+# STABLE Compose BOM (no more `compose-bom-alpha`). 2026.05.00 maps to Compose
+# 1.11.x and Material 3 1.4.0 — all stable. This removes the pre-release-BOM
+# risk that was flagged in earlier debugging rounds.
+androidxComposeBom = "2026.05.00"
+
+# The androidx.compose.material:material-icons-* artifacts stopped being
+# published after 1.7.x and were REMOVED from the Compose BOM. 1.7.8 is the
+# final version and is forward-compatible with Compose 1.11 (it only depends on
+# stable ui/ runtime APIs). It must now carry an explicit version.
+composeMaterialIcons = "1.7.8"
+
+androidxCore = "1.19.0"
+androidMaterial = "1.14.0"
+androidxAppCompat = "1.7.1"
+androidxActivity = "1.13.0"
+graphics = "1.0.1"
+constraintLayout = "1.1.1"
+
+androidxLifecycle = "2.10.0"
+androidxNavigation = "2.9.8"
+
+# androidx.test moved to a unified release train in 2025; these are the latest
+# stable artifact versions from it. (androidTest-only — not part of release builds.)
+androidxEspresso = "3.7.0"
+androidxTestExt = "1.3.0"
+
+# ── App libraries ─────────────────────────────────────────────────────────────
+# Coil 3 (package `coil3`). Networking is no longer bundled in coil-core — the
+# coil-network-okhttp artifact below restores http(s) image loading via the
+# OkHttp we already ship. See AsyncImageImpl.kt for the (single-file) migration.
+coil = "3.4.0"
+
+junit4 = "4.13.2"
+
+serialization = "1.11.0"
+
+# OkHttp finally left alpha: 5.0.0 went stable in July 2025; 5.4.0 is current.
+# This also unblocks Sentry's OkHttp auto-instrumentation (see app/build.gradle.kts).
+okhttp = "5.4.0"
+
+room = "2.8.4"
+
+youtubedlAndroid = "0.17.3"
+
+# MMKV 2.x is 64-bit only. That is now fine: minSdk 35 (Android 15) devices are
+# 64-bit, and the build no longer produces 32-bit APKs (see app/build.gradle.kts).
+# The old "pin to v1.3.x for 32-bit support" constraint is gone.
+mmkv = "2.4.0"
+
+koin = "4.2.1"
+
+ktfmt = "0.26.0"
+
+# accompanist-permissions is alive and current at 0.37.x. accompanist-webview
+# and accompanist-pager-indicators were REMOVED upstream after 0.34/0.35, so the
+# two artifacts that still use them stay pinned to the last version that ships
+# them. They only use stable Compose/AndroidView APIs, so they remain
+# binary-compatible with Compose 1.11. (Long-term: migrate WebViewPage to a raw
+# AndroidView and the one HorizontalPagerIndicator usage to a custom composable.)
+accompanist = "0.37.3"
+accompanistLegacy = "0.34.0"
+
+# Sentry SDK (io.sentry:sentry-android + sentry-okhttp) and the Sentry Android
+# Gradle plugin. 8.43.1 (June 3, 2026) and plugin 6.10.0 are both the latest
+# releases — already current. Keep all io.sentry:* artifacts on the same
+# `sentry` version to avoid the SDK's deliberate "mixed versions" init crash.
+sentry = "8.43.1"
+sentryGradlePlugin = "6.10.0"
+
+[
+libraries
+]
+
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
+android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
+
+androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
+
+accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
+# Removed upstream after 0.34/0.35 — pinned to the last published version (see note above).
+accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanistLegacy" }
+accompanist-pager-indicators = { group = "com.google.accompanist", name = "accompanist-pager-indicators", version.ref = "accompanistLegacy" }
+
+# Stable BOM — was `compose-bom-alpha` pinned to a pre-release.
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
+
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+# No longer in the BOM — explicit (final) version required, see [versions].
+androidx-compose-material-iconsExtended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeMaterialIcons" }
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+
+androidx-compose-material = { group = "androidx.compose.material", name = "material" }
+
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material3-windowSizeClass = { group = "androidx.compose.material3", name = "material3-window-size-class" }
+
+androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphics" }
+
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
+androidx-compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+
+androidx-constraintlayout-compose = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "constraintLayout" }
+
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigation" }
+
+androidx-test-ext = { group = "androidx.test.ext", name = "junit-ktx", version.ref = "androidxTestExt" }
+
+androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxEspresso" }
+
+# Coil 3: compose bindings + the OkHttp network fetcher (auto-registered via
+# service loader — no code needed beyond having it on the classpath).
+coil-kt-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+
+junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
+
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+
+koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
+
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+youtubedl-android-library = { group = "io.github.junkfood02.youtubedl-android", name = "library", version.ref = "youtubedlAndroid" }
+youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", name = "ffmpeg", version.ref = "youtubedlAndroid" }
+youtubedl-android-aria2c = { group = "io.github.junkfood02.youtubedl-android", name = "aria2c", version.ref = "youtubedlAndroid" }
+
+mmkv = { group = "com.tencent", name = "mmkv", version.ref = "mmkv" }
+
+sentry-android = { group = "io.sentry", name = "sentry-android", version.ref = "sentry" }
+# Required by the Sentry Gradle plugin's OKHTTP instrumentation feature, which
+# is now enabled (okhttp is stable). Same version as sentry-android — mandatory.
+sentry-okhttp = { group = "io.sentry", name = "sentry-okhttp", version.ref = "sentry" }
+
+[
+plugins
+]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+room = { id = "androidx.room", version.ref = "room" }
+ktfmt-gradle = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
+sentry = { id = "io.sentry.android.gradle", version.ref = "sentryGradlePlugin" }
+
+
+[
+bundles
+]
+accompanist = [
+    "accompanist-permissions",
+    "accompanist-webview",
+    "accompanist-pager-indicators",
+]
+
+androidxCompose = ["androidx-compose-ui",
+    "androidx-compose-ui-tooling-preview",
+    "androidx-compose-material-iconsExtended",
+    "androidx-compose-material3",
+    "androidx-compose-material3-windowSizeClass",
+    "androidx-compose-foundation",
+    "androidx-navigation-compose",
+    "androidx-compose-animation",
+    "androidx-constraintlayout-compose"
+]
+
+youtubedlAndroid = ["youtubedl-android-library",
+    "youtubedl-android-ffmpeg",
+    "youtubedl-android-aria2c"]
+
+core = ["androidx-activity-compose",
+    "android-material",
+    "androidx-appcompat",
+    "androidx-core-ktx"]
+2. gradle/wrapper/gradle-wrapper.properties
+properties
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.5-bin.zip
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
+3. settings.gradle.kts
+kotlin
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+plugins {
+    // Resolves and downloads the JDK requested by `kotlin { jvmToolchain(21) }` when the build
+    // host doesn't already have it. 1.0.0 is the current stable release (was 0.4.0).
+    id("org.gradle.toolchains.foojay-resolver-convention") version ("1.0.0")
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        mavenLocal()
+    }
+}
+rootProject.name = "Seal"
+include(":app")
+include(":color")
+4. gradle.properties
+Daemon heap 2 GB → 4 GB + 1 GB metaspace (AGP 8.13 + Kotlin 2.3 + R8 full-mode exceed the old ceiling; public-repo runners have 16 GB), and parallel + build cache turned on — :app and :color are decoupled, and the setup-gradle action caches across CI runs.
+
+properties
+# Project-wide Gradle settings.
+# IDE (e.g. Android Studio) users:
+# Gradle settings configured through the IDE *will override*
+# any settings specified in this file.
+# For more details on how to configure your build environment visit
+# http://www.gradle.org/docs/current/userguide/build_environment.html
+# Specifies the JVM arguments used for the daemon process.
+# 4 GB heap + 1 GB metaspace: AGP 8.13 + Kotlin 2.3 + R8 full-mode comfortably exceed the old
+# 2 GB ceiling on this project; GitHub's standard public-repo runners have 16 GB, so this is safe.
+org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8
+# Build :app and :color in parallel (they are decoupled).
+org.gradle.parallel=true
+# Reuse task outputs across builds (and across CI runs via the setup-gradle action's cache).
+org.gradle.caching=true
+# AndroidX package structure to make it clearer which packages are bundled with the
+# Android operating system, and which are packaged with your app"s APK
+# https://developer.android.com/topic/libraries/support-library/androidx-rn
+android.useAndroidX=true
+# Kotlin code style for this project: "official" or "obsolete":
+kotlin.code.style=official
+# Enables namespacing of each library's R class so that its R class includes only the
+# resources declared in the library itself and none from the library's dependencies,
+# thereby reducing the size of the R class for that library
+android.nonTransitiveRClass=true
+ABI_FILTERS=arm64-v8a
+android.nonFinalResIds=true
+org.gradle.configuration-cache=true
+5. app/build.gradle.kts
+Beyond the SDK/split changes already covered: ksp { arg("room.incremental", "true") } is removed (default since Room 2.3), and kotlinOptions { freeCompilerArgs + "-opt-in=kotlin.RequiresOptIn" } is removed — that flag has been a no-op since Kotlin 1.7 made the opt-in mechanism stable; all your actual opt-ins are explicit @OptIn(...) at use sites, so nothing changes. The Sentry block now enables OKHTTP instrumentation (the old comment explaining why it was off — okhttp being alpha — no longer applies). Keystore flow, flavor definitions, APK-renaming block, and printVersionName are byte-identical.
+
+kotlin
+@file:Suppress("UnstableApiUsage")
+
+import com.android.build.api.variant.FilterConfiguration
+import io.sentry.android.gradle.extensions.InstrumentationFeature
+import io.sentry.android.gradle.instrumentation.logcat.LogcatLevel
+import java.io.FileInputStream
+import java.util.EnumSet
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.room)
+    alias(libs.plugins.ktfmt.gradle)
+    // Sentry Android Gradle plugin: handles (optional) R8 mapping upload and the bytecode
+    // auto-instrumentation we configure in the `sentry { }` block below. Applied only here in
+    // `:app` (mirroring how ktfmt is applied), so no change to the root build.gradle.kts is needed.
+    alias(libs.plugins.sentry)
+}
+
+val keystorePropertiesFile: File = rootProject.file("keystore.properties")
+
+val splitApks = !project.hasProperty("noSplits")
+
+val abiFilterList = (properties["ABI_FILTERS"] as String).split(';')
+
+// 64-bit only as of the Android-15+ baseline (minSdk 35): every Android 15 device is 64-bit, and
+// MMKV 2.x ships no 32-bit native libraries. armeabi-v7a / x86 are therefore gone from the splits
+// below. The numeric codes for the SURVIVING ABIs are unchanged (arm64-v8a=2, x86_64=4) so the
+// per-ABI versionCode offsets stay identical and Obtainium updates keep working.
+val abiCodes = mapOf("arm64-v8a" to 2, "x86_64" to 4)
+
+// ── Version resolution ────────────────────────────────────────────────────────
+//
+// CI passes -PversionNameOverride=... and -PversionCodeOverride=... to inject
+// a timestamp-based auto-bumping version. When building locally (or if the
+// properties aren't set), we fall back to the values from buildSrc/Version.kt.
+val baseVersionName: String = if (project.hasProperty("versionNameOverride")) {
+    project.property("versionNameOverride") as String
+} else {
+    currentVersion.name
+}
+
+val currentVersionCode: Int = if (project.hasProperty("versionCodeOverride")) {
+    (project.property("versionCodeOverride") as String).toInt()
+} else {
+    currentVersion.code.toInt()
+}
+
+android {
+    compileSdk = 36
+
+    if (keystorePropertiesFile.exists()) {
+        val keystoreProperties = Properties()
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+        signingConfigs {
+            create("githubPublish") {
+                keyAlias = keystoreProperties["keyAlias"].toString()
+                keyPassword = keystoreProperties["keyPassword"].toString()
+                storeFile = file(keystoreProperties["storeFile"]!!)
+                storePassword = keystoreProperties["storePassword"].toString()
+            }
+        }
+    }
+
+    buildFeatures { buildConfig = true }
+
+    defaultConfig {
+        applicationId = "com.junkfood.seal"
+        // Android 15+ only, per the project's stated support policy. This makes every
+        // `SDK_INT >= 26/30/33` branch in the codebase constant-true (lint flags them as
+        // ObsoleteSdkInt; they are removed opportunistically in files touched by this round).
+        minSdk = 35
+        targetSdk = 36
+        versionCode = currentVersionCode
+
+        versionName = baseVersionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables { useSupportLibrary = true }
+
+        // Sentry DSN, exposed to the app as BuildConfig.SENTRY_DSN. A DSN is a *public* client-side
+        // identifier (it only permits sending events, never reading them), so it is safe to commit.
+        // App.kt only initializes Sentry when this is non-blank; the `fdroid` flavor overrides it to
+        // "" below so F-Droid builds ship with zero telemetry.
+        buildConfigField(
+            "String",
+            "SENTRY_DSN",
+            "\"https://765791294bb0c81b06d4784a8913ba1c@o4511444968079360.ingest.de.sentry.io/4511529508995152\"",
+        )
+
+        if (splitApks) {
+            splits {
+                abi {
+                    isEnable = true
+                    reset()
+                    // 64-bit only — see the abiCodes note above.
+                    include("arm64-v8a", "x86_64")
+                    isUniversalApk = true
+                }
+            }
+        } else {
+            ndk { abiFilters.addAll(abiFilterList) }
+        }
+    }
+
+    room { schemaDirectory("$projectDir/schemas") }
+
+    androidComponents {
+        onVariants { variant ->
+            variant.outputs.forEach { output ->
+                val name =
+                    if (splitApks) {
+                        output.filters
+                            .find { it.filterType == FilterConfiguration.FilterType.ABI }
+                            ?.identifier
+                    } else {
+                        abiFilterList.firstOrNull()
+                    }
+
+                val baseAbiCode = abiCodes[name]
+
+                if (baseAbiCode != null) {
+                    output.versionCode.set(baseAbiCode + (output.versionCode.get() ?: 0))
+                }
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("githubPublish")
+            }
+        }
+        debug {
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("githubPublish")
+            }
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            resValue("string", "app_name", "Seal Debug")
+        }
+    }
+
+    flavorDimensions += "publishChannel"
+
+    productFlavors {
+        create("generic") {
+            dimension = "publishChannel"
+            isDefault = true
+        }
+
+        create("githubPreview") {
+            dimension = "publishChannel"
+            applicationIdSuffix = ".preview"
+            resValue("string", "app_name", "Seal Preview")
+        }
+
+        create("fdroid") {
+            dimension = "publishChannel"
+            versionName = "$baseVersionName-(F-Droid)"
+            // F-Droid forbids non-free network services / tracking. Blank out the DSN so Sentry is
+            // never initialized in this flavor (App.kt no-ops on a blank DSN), and `ignoredFlavors`
+            // in the `sentry { }` block disables the plugin's instrumentation/upload for it too.
+            buildConfigField("String", "SENTRY_DSN", "\"\"")
+        }
+    }
+
+    lint { disable.addAll(listOf("MissingTranslation", "ExtraTranslation", "MissingQuantity")) }
+
+    applicationVariants.all {
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                "Seal-${defaultConfig.versionName}-${name}.apk"
+        }
+    }
+
+    packaging {
+        resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+        jniLibs.useLegacyPackaging = true
+    }
+    androidResources { generateLocaleConfig = true }
+
+    namespace = "com.junkfood.seal"
+}
+
+// ── Sentry Gradle plugin configuration ────────────────────────────────────────
+//
+// Read the upload auth token from the environment via the Provider API (rather than
+// System.getenv) so the whole block stays compatible with the configuration cache
+// (org.gradle.configuration-cache=true is enabled for this project).
+val sentryAuthToken = providers.environmentVariable("SENTRY_AUTH_TOKEN")
+
+sentry {
+    org.set("collabs-with-kushal")
+    projectName.set("seal")
+    authToken.set(sentryAuthToken)
+
+    // Generate the R8 mapping UUID and embed it into the build, but only *upload* the mapping when
+    // a SENTRY_AUTH_TOKEN is present (i.e. in CI). Local/dry builds therefore never fail for lack
+    // of a token. (This project uses `-dontobfuscate`, so symbol names are intact even without the
+    // mapping; uploading it additionally de-inlines/maps line numbers for the cleanest traces.)
+    includeProguardMapping.set(true)
+    autoUploadProguardMapping.set(sentryAuthToken.map { it.isNotBlank() }.orElse(false))
+
+    // We declare every io.sentry:* artifact explicitly in the version catalog (sentry-android and,
+    // now, sentry-okhttp), so the plugin's auto-installation stays off — versions are pinned by us,
+    // in one place, on one shared `sentry` version.
+    autoInstallation { enabled.set(false) }
+
+    // Don't instrument or upload anything for the F-Droid flavor.
+    ignoredFlavors.set(listOf("fdroid"))
+
+    // Bytecode auto-instrumentation. This is how we "log everything" without touching any of the
+    // app's source files:
+    //   • DATABASE + FILE_IO  → spans for Room/SQLite and java.io file operations. Besides timing,
+    //                            these power Sentry's server-side "DB/File-I/O on the main thread"
+    //                            ANR root-cause detection.
+    //   • OKHTTP              → spans + breadcrumbs for every OkHttp call (update checks, sponsor
+    //                            list). Enabled now that okhttp is on a stable 5.x release; backed
+    //                            by the io.sentry:sentry-okhttp artifact added in dependencies.
+    //   • logcat (VERBOSE)    → turns every android.util.Log.* call into a Sentry breadcrumb, so the
+    //                            app's existing logging shows up on the timeline of every event.
+    //
+    // Intentionally NOT enabled:
+    //   • COMPOSE — would add navigation breadcrumbs but requires the sentry-compose-android
+    //               artifact and bytecode-instruments NavControllers. Left off to keep the change
+    //               minimal/low-risk; add the dependency + feature later if route breadcrumbs help.
+    tracingInstrumentation {
+        enabled.set(true)
+        features.set(
+            EnumSet.of(
+                InstrumentationFeature.DATABASE,
+                InstrumentationFeature.FILE_IO,
+                InstrumentationFeature.OKHTTP,
+            )
+        )
+        logcat {
+            enabled.set(true)
+            minLevel.set(LogcatLevel.VERBOSE)
+        }
+    }
+
+    // Don't send the plugin's own build-time telemetry to Sentry.
+    telemetry.set(false)
+}
+
+ktfmt { kotlinLangStyle() }
+
+kotlin { jvmToolchain(21) }
+
+dependencies {
+    implementation(project(":color"))
+
+    implementation(libs.bundles.core)
+
+    implementation(libs.androidx.lifecycle.runtimeCompose)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.bundles.androidxCompose)
+    implementation(libs.bundles.accompanist)
+
+    // Coil 3: compose bindings + the OkHttp-backed network fetcher. In Coil 3 the http(s) fetcher
+    // moved out of the core artifact; without coil-network-okhttp every remote thumbnail would
+    // silently fail to load. The fetcher self-registers via ServiceLoader — no code required.
+    implementation(libs.coil.kt.compose)
+    implementation(libs.coil.network.okhttp)
+
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
+
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
+    implementation(libs.okhttp)
+
+    implementation(libs.bundles.youtubedlAndroid)
+
+    implementation(libs.mmkv)
+
+    // Sentry: crash + ANR + performance reporting. `sentry-android` is the umbrella artifact
+    // (core + NDK native-crash handler); `sentry-okhttp` backs the OKHTTP instrumentation feature
+    // enabled in the sentry { } block above. Both ride the same `sentry` catalog version — keep it
+    // that way (or switch to io.sentry:sentry-bom) to avoid the SDK's deliberate "mixed versions"
+    // init crash.
+    implementation(libs.sentry.android)
+    implementation(libs.sentry.okhttp)
+
+    testImplementation(libs.junit4)
+    androidTestImplementation(libs.androidx.test.ext)
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    implementation(libs.androidx.compose.ui.tooling)
+}
+
+// ── CI helper task ────────────────────────────────────────────────────────────
+//
+// Prints the app's version name to stdout so the GitHub Actions workflow can
+// capture it without parsing Kotlin source files.
+//
+// Usage:  ./gradlew printVersionName
+// Output: 2.0.0-alpha.5   (whatever currentVersion.name resolves to)
+//
+// NOTE: This always prints the Version.kt value, NOT the CI override.
+// The CI uses this as the "base" and then appends a timestamp.
+tasks.register("printVersionName") {
+    group = "versioning"
+    description = "Prints the current versionName to stdout for CI consumption."
+    doLast {
+        println(currentVersion.name)
+    }
+}
+6. color/build.gradle.kts
+The original declared Java 1.8 twice (a top-level java {} block and a compileOptions {} that set sourceCompatibility twice — a long-standing typo) while Kotlin targeted 21. That's a latent jvm-target mismatch that newer KGP rejects. Both blocks are removed; jvmToolchain(21) is the single source of truth, matching :app.
+
+kotlin
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
+}
+
+// Single source of truth for the JVM target. The old file *also* declared Java 1.8 via a top-level
+// `java {}` block and a (duplicated) `compileOptions {}` — leaving javac on 1.8 while Kotlin
+// targeted 21, a latent jvm-target mismatch that newer AGP/KGP versions reject. Both blocks are
+// gone; the toolchain below now configures javac and kotlinc consistently.
+kotlin {
+    jvmToolchain(21)
+}
+android {
+    compileSdk = 36
+    defaultConfig {
+        // Matches :app — the library is never consumed anywhere else.
+        minSdk = 35
+    }
+    namespace = "com.junkfood.seal.color"
+    buildTypes {
+        release {
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            )
+            isMinifyEnabled = true
+        }
+    }
+}
+dependencies {
+    api(platform(libs.androidx.compose.bom))
+    api(libs.androidx.compose.ui)
+    api(libs.androidx.compose.runtime)
+    api(libs.androidx.core.ktx)
+    api(libs.androidx.compose.foundation)
+    api(libs.androidx.compose.material3)
+}
+7. app/src/main/AndroidManifest.xml
+Removed: WRITE_EXTERNAL_STORAGE (maxSdk 29 — can never be granted at minSdk 35), the invalid minSdkVersion attribute on POST_NOTIFICATIONS, requestLegacyExternalStorage (no-op since API 30), and tools:targetApi="tiramisu". Added: the PROPERTY_SPECIAL_USE_FGS_SUBTYPE <property> on DownloadService — the Android-14+ way to document what the special use is; it costs nothing and specialUse has no runtime timeout on Android 15+. Everything else, including both Sentry meta-data entries, is byte-identical.
+
+xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <category android:name="android.intent.category.BROWSABLE" />
+
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".App"
+        android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
+        android:extractNativeLibs="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true">
+
+        <!--
+          Sentry: we disable auto-init so App.kt can initialize the SDK manually with full
+          programmatic control (see App.initSentry()). The DSN and all other options live there.
+          This meta-data only controls the SentryInitProvider ContentProvider; manual init still
+          reads any Sentry meta-data declared here.
+        -->
+        <meta-data
+            android:name="io.sentry.auto-init"
+            android:value="false" />
+        <!--
+          ANR stack profiling (SDK 8.35.0+): when an ANR is detected, capture a profile (flamegraph)
+          of what the main thread was doing, store it to disk, and attach it to the ANR event on the
+          next launch. Set here (rather than in code) because it's an experimental option that the
+          manifest reader supports directly. Set to 0.0 to disable.
+        -->
+        <meta-data
+            android:name="io.sentry.anr.profiling.sample-rate"
+            android:value="1.0" />
+
+        <activity
+            android:name=".CrashReportActivity"
+            android:exported="false"
+            android:label="CrashReportActivity"
+            android:theme="@style/Theme.Seal" />
+        <activity
+            android:name=".QuickDownloadActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/title_activity_share"
+            android:launchMode="singleInstance"
+            android:theme="@style/Theme.Seal.Dialog">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          specialUse foreground service: yt-dlp media downloads don't fit any concrete FGS type
+          (dataSync has a 6-hour timeout; mediaProcessing is for transcoding local media). The
+          <property> below is the Android-14+ way to declare *what* the special use is — it's
+          surfaced in `dumpsys` and required by Play review (irrelevant here, but it costs nothing
+          and documents intent). specialUse has no system-imposed runtime timeout on Android 15+.
+        -->
+        <service
+            android:name=".DownloadService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-initiated media downloads via the bundled yt-dlp/ffmpeg, with per-task progress notifications" />
+        </service>
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.Seal">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+
+        <receiver android:name=".NotificationActionReceiver" />
+    </application>
+
+</manifest>
+8. app/src/main/java/com/junkfood/seal/App.kt
+Changes on top of the verbatim rounds 1–3 file: watchdog install right after initSentry() (so the init-order contract holds untouched); activity-lifecycle logging (each entry becomes a Sentry breadcrumb); onCreate timing; bind/unbind timing with printStackTrace() converted to tagged Log.w/e — behavior-identical, but System.err is not picked up by the logcat instrumentation, so these exceptions were invisible to Sentry breadcrumbs until now; and the minSdk-35 cleanups (PackageInfoFlags unconditional, createNotificationChannel unguarded, longVersionCode/RELEASE_OR_CODENAME unconditional, dead val page deleted). The @Suppress("UNUSED_VARIABLE") in onServiceConnected is gone because the binder is now actually used in the log line.
+
+kotlin
+package com.junkfood.seal
+
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.Application
+import android.content.ClipboardManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
+import android.os.SystemClock
+import android.util.Log
+import androidx.core.content.getSystemService
+import com.google.android.material.color.DynamicColors
+import com.junkfood.seal.download.DownloaderV2
+import com.junkfood.seal.download.DownloaderV2Impl
+import com.junkfood.seal.ui.page.download.HomePageViewModel
+import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
+import com.junkfood.seal.ui.page.settings.directory.Directory
+import com.junkfood.seal.ui.page.settings.network.CookiesViewModel
+import com.junkfood.seal.ui.page.videolist.VideoListViewModel
+import com.junkfood.seal.util.AUDIO_DIRECTORY
+import com.junkfood.seal.util.COMMAND_DIRECTORY
+import com.junkfood.seal.util.DownloadUtil
+import com.junkfood.seal.util.FileUtil
+import com.junkfood.seal.util.FileUtil.createEmptyFile
+import com.junkfood.seal.util.FileUtil.getCookiesFile
+import com.junkfood.seal.util.FileUtil.getExternalDownloadDirectory
+import com.junkfood.seal.util.FileUtil.getExternalPrivateDownloadDirectory
+import com.junkfood.seal.util.NotificationUtil
+import com.junkfood.seal.util.PreferenceUtil
+import com.junkfood.seal.util.PreferenceUtil.getString
+import com.junkfood.seal.util.PreferenceUtil.updateString
+import com.junkfood.seal.util.SDCARD_URI
+import com.junkfood.seal.util.UpdateUtil
+import com.junkfood.seal.util.VIDEO_DIRECTORY
+import com.junkfood.seal.util.YT_DLP_VERSION
+import com.tencent.mmkv.MMKV
+import com.yausername.aria2c.Aria2c
+import com.yausername.ffmpeg.FFmpeg
+import com.yausername.youtubedl_android.YoutubeDL
+import io.sentry.Sentry
+import io.sentry.android.core.SentryAndroid
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
+
+class App : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        val onCreateStart = SystemClock.uptimeMillis()
+
+        // ──────────────────────────────────────────────────────────────────────────────────────
+        //  Initialization order is load-bearing here. Do NOT reorder without reading this.
+        // ──────────────────────────────────────────────────────────────────────────────────────
+        //
+        //  initSentry() (called below) reads a preference — YT_DLP_VERSION.getString() — from
+        //  inside the SentryAndroid.init { … } options lambda. The very first preference access
+        //  forces class initialization of PreferenceUtil, whose static initializer eagerly builds
+        //  templateListStateFlow:
+        //
+        //      val templateListStateFlow =
+        //          DatabaseUtil.getTemplateFlow().stateIn(applicationScope, …)
+        //
+        //  That single property transitively requires *both* of the companion's lateinit fields:
+        //    • DatabaseUtil.getTemplateFlow() forces DatabaseUtil's own static init, which builds
+        //      the Room database via Room.databaseBuilder(context, …)   →  needs App.context
+        //    • .stateIn(applicationScope, …)                            →  needs App.applicationScope
+        //
+        //  If either is still uninitialized at that moment the chain throws
+        //  UninitializedPropertyAccessException → ExceptionInInitializerError →
+        //  NoClassDefFoundError(PreferenceUtil), and the app dies the instant it is launched.
+        //
+        //  Therefore these three cheap, dependency-free steps MUST run before initSentry():
+        //    1. context           — required by DatabaseUtil's Room builder
+        //    2. applicationScope  — required by the .stateIn(…) above (and DatabaseUtil.init)
+        //    3. MMKV.initialize   — PreferenceUtil's getters read from MMKV
+        //  None of them depends on Koin or on the heavyweight init below, so this is safe and early.
+        //
+        //  NOTE: this is also the ONLY place App.context may ever be assigned. It must always be
+        //  the *application* context. MainActivity used to overwrite it with the Activity's
+        //  baseContext on every onCreate(), leaking each Activity instance (and its Compose trees)
+        //  for the lifetime of the process — see MainActivity.kt for the full story.
+        context = applicationContext
+        applicationScope = CoroutineScope(SupervisorJob())
+        MMKV.initialize(this)
+
+        // Initialize Sentry as early as correctness allows — immediately after the minimal app
+        // state it transitively depends on (context, applicationScope, MMKV), and before the
+        // heavyweight youtube-dl/ffmpeg/aria2c initialization further down. Initializing here means
+        // the SDK's crash handler, ANR detection, breadcrumb collectors, and offline cache are all
+        // live for the *entire* remainder of startup, so a crash or freeze that happens while
+        // youtube-dl/ffmpeg/aria2c are initializing is still captured.
+        //
+        // This is a no-op when BuildConfig.SENTRY_DSN is blank, which is the case for the `fdroid`
+        // flavor (see app/build.gradle.kts), so F-Droid builds remain completely telemetry-free.
+        initSentry()
+
+        // The in-process freeze detector. Sentry's ANRv2 can only report stalls that the OS itself
+        // escalated to a full ANR (≥ 5 s of ignored *input*); the freezes under investigation
+        // recover (or get force-killed) before that, which is exactly why no logs ever appeared.
+        // The watchdog measures main-looper liveness directly with a 2-second threshold and dumps
+        // all thread stacks to logcat, to a rotating file, and (gated on the same flag as
+        // everything else) to Sentry. See MainThreadWatchdog.kt for the full design rationale.
+        MainThreadWatchdog.install(context = this, sentryEnabled = isSentryEnabled)
+
+        // Log every Activity lifecycle transition. Each Log.d below is rewritten into a Sentry
+        // breadcrumb by the Gradle plugin's logcat instrumentation, so when a freeze report or
+        // crash arrives, its timeline shows exactly the app-switching churn (pause/stop/recreate
+        // bursts) that precedes the symptom. Locally: `adb logcat -s AppLifecycle`.
+        registerActivityLifecycleCallbacks(
+            object : ActivityLifecycleCallbacks {
+                private val tag = "AppLifecycle"
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                    Log.d(
+                        tag,
+                        "${activity.javaClass.simpleName} created" +
+                            if (savedInstanceState != null) " (restored)" else "",
+                    )
+                }
+
+                override fun onActivityStarted(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} started")
+                }
+
+                override fun onActivityResumed(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} resumed")
+                }
+
+                override fun onActivityPaused(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} paused")
+                }
+
+                override fun onActivityStopped(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} stopped")
+                }
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {
+                    Log.d(tag, "${activity.javaClass.simpleName} saveInstanceState")
+                }
+
+                override fun onActivityDestroyed(activity: Activity) {
+                    Log.d(tag, "${activity.javaClass.simpleName} destroyed")
+                }
+            }
+        )
+
+        startKoin {
+            androidLogger()
+            androidContext(this@App)
+            modules(
+                module {
+                    single<DownloaderV2> { DownloaderV2Impl(androidContext()) }
+                    viewModel { DownloadDialogViewModel(downloader = get()) }
+                    viewModel { HomePageViewModel() }
+                    viewModel { CookiesViewModel() }
+                    viewModel { VideoListViewModel() }
+                }
+            )
+        }
+
+        // minSdk is 35: the modern PackageInfoFlags overload always exists, so the old
+        // `if (SDK_INT >= 33)` fork is gone.
+        packageInfo =
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+        DynamicColors.applyToActivitiesIfAvailable(this)
+
+        clipboard = getSystemService()!!
+        connectivityManager = getSystemService()!!
+
+        applicationScope.launch((Dispatchers.IO)) {
+            try {
+                YoutubeDL.init(this@App)
+                FFmpeg.init(this@App)
+                Aria2c.init(this@App)
+                DownloadUtil.getCookiesContentFromDatabase().getOrNull()?.let {
+                    FileUtil.writeContentToFile(it, getCookiesFile())
+                }
+                UpdateUtil.deleteOutdatedApk()
+            } catch (th: Throwable) {
+                // This failure is *caught*, so the global uncaught-exception handler below will not
+                // see it. Report it to Sentry explicitly so initialization failures (a common
+                // source of "the app is broken on some devices" reports) are still visible, then
+                // fall back to the existing on-device crash screen exactly as before.
+                Log.e(TAG, "youtubedl-android initialization failed", th)
+                if (isSentryEnabled) {
+                    Sentry.captureException(th)
+                }
+                withContext(Dispatchers.Main) { startCrashReportActivity(th) }
+            }
+        }
+
+        videoDownloadDir = VIDEO_DIRECTORY.getString(getExternalDownloadDirectory().absolutePath)
+
+        audioDownloadDir = AUDIO_DIRECTORY.getString(File(videoDownloadDir, "Audio").absolutePath)
+        if (!PreferenceUtil.containsKey(COMMAND_DIRECTORY)) {
+            COMMAND_DIRECTORY.updateString(videoDownloadDir)
+        }
+        // minSdk 35 ≥ 26: notification channels always exist; the version gate is gone.
+        NotificationUtil.createNotificationChannel()
+
+        installGlobalCrashHandler()
+
+        Log.i(TAG, "App.onCreate completed in ${SystemClock.uptimeMillis() - onCreateStart} ms")
+    }
+
+    /**
+     * Whether Sentry is active for this build. We gate purely on the DSN being non-blank: the
+     * `fdroid` flavor sets [BuildConfig.SENTRY_DSN] to the empty string (see app/build.gradle.kts),
+     * so this is automatically `false` there and Sentry is never initialized.
+     */
+    private val isSentryEnabled: Boolean
+        get() = BuildConfig.SENTRY_DSN.isNotBlank()
+
+    /**
+     * Configures and starts the Sentry SDK with verbose, "capture as much as possible" settings.
+     *
+     * The overarching goal here is to debug the app-switching UI freeze / ANR, so the configuration
+     * is deliberately aggressive: ANR detection (v2 on Android 11+) with the raw OS thread dump,
+     * full thread stacks, screenshots and a view-hierarchy snapshot on errors, a long breadcrumb
+     * trail, performance tracing (which also powers Sentry's server-side "DB/file I/O on the main
+     * thread" ANR root-cause analysis), and a larger on-disk envelope cache so nothing is lost
+     * while offline.
+     *
+     * Two related knobs live in `AndroidManifest.xml` instead of here, because they are read by
+     * Sentry's init ContentProvider / are experimental:
+     *  - `io.sentry.auto-init = false` — we initialize manually (here) for full programmatic control.
+     *  - `io.sentry.anr.profiling.sample-rate = 1.0` — ANR stack profiling (a flamegraph of what the
+     *    main thread was doing at the moment of an ANR), available since SDK 8.35.0.
+     */
+    private fun initSentry() {
+        val dsn = BuildConfig.SENTRY_DSN
+        if (dsn.isBlank()) return // Sentry disabled for this build (e.g. the F-Droid flavor).
+
+        SentryAndroid.init(this) { options ->
+            options.dsn = dsn
+
+            // ── Identify the build so events can be grouped/filtered in the Sentry UI ──────────
+            options.release =
+                "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
+            options.environment =
+                if (BuildConfig.DEBUG) "${BuildConfig.FLAVOR}-debug" else BuildConfig.FLAVOR
+            options.dist = BuildConfig.VERSION_CODE.toString()
+            options.setTag("flavor", BuildConfig.FLAVOR)
+            options.setTag("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown")
+            // yt-dlp version is stored in MMKV (initialized above). It may be empty on a fresh
+            // install before the first update check; that's fine, we just skip the tag then.
+            YT_DLP_VERSION.getString().takeIf { it.isNotBlank() }
+                ?.let { options.setTag("yt_dlp_version", it) }
+
+            // ── Log as much as possible (the entire point of this integration) ────────────────
+            // Verbose SDK self-logging only in debug builds, so release logcat stays clean.
+            options.isDebug = BuildConfig.DEBUG
+            // Attach request URLs/headers, IP, device name, etc. NOTE: this sends additional
+            // personally-identifiable information — see the disclosure in README.md.
+            options.isSendDefaultPii = true
+            // Attach stack traces for *every* running thread to events, not just the crashing one.
+            // This is the single most useful flag for understanding an ANR/deadlock.
+            options.isAttachThreads = true
+            // Capture a screenshot and a JSON snapshot of the view hierarchy at the moment of error.
+            options.isAttachScreenshot = true
+            options.isAttachViewHierarchy = true
+            // Keep a longer trail of breadcrumbs (default is 100). The Sentry Gradle plugin turns
+            // every android.util.Log call in the app into a breadcrumb (see app/build.gradle.kts),
+            // so this directly controls how much of that log history rides along with each event.
+            options.maxBreadcrumbs = 200
+            // Enable Sentry Logs so logs captured via Sentry.logger() are forwarded as well.
+            options.logs.isEnabled = true
+            // Richer native-crash context using Android tombstones (the native NDK crash handler
+            // itself ships in sentry-android and is on by default).
+            options.isTombstoneEnabled = true
+
+            // ── ANR detection: the primary motivation for adding Sentry ───────────────────────
+            options.isAnrEnabled = true
+            // Match Android's own 5-second ANR threshold (used by the pre-API-30 watchdog).
+            options.anrTimeoutIntervalMillis = 5_000L
+            // On the first launch after this SDK is added, also report ANRs that the OS recorded
+            // *before* Sentry existed (from ApplicationExitInfo history).
+            options.isReportHistoricalAnrs = true
+            // Attach the raw thread dump the OS captured for the ANR (held locks, all threads, …).
+            options.isAttachAnrThreadDump = true
+
+            // ── Performance tracing ───────────────────────────────────────────────────────────
+            // 100% sampling: capture every transaction. Besides giving timing data, this is what
+            // lets Sentry link a slow Room/SQLite or file-I/O span (instrumented by the Gradle
+            // plugin) to an ANR event as its root cause. Fine for a debugging-focused build; dial
+            // this down later if event volume becomes a concern.
+            options.tracesSampleRate = 1.0
+
+            // ── Offline durability: "store the logs and send them next time online" ───────────
+            // Sentry already persists every envelope (crash, ANR, log, breadcrumb-carrying event)
+            // to the app cache dir and re-sends on the next launch / when connectivity returns.
+            // We simply keep more of them so a long offline stretch doesn't drop older events.
+            options.maxCacheItems = 100
+        }
+    }
+
+    /**
+     * Installs the process-wide uncaught-exception handler.
+     *
+     * Behaviour is intentionally identical to the original single line this replaces — show the
+     * on-device [CrashReportActivity] — with one addition: when Sentry is active, the crash is also
+     * handed off to Sentry's own handler so it is captured, written to disk, and flushed before the
+     * process dies (and the process is then terminated, as it would be normally).
+     *
+     * Ordering matters. [SentryAndroid.init] (called earlier in [onCreate]) installs Sentry's
+     * handler as the current default; we capture it here as [downstream]. Sentry's handler ends by
+     * delegating to the system handler, which kills the process, so we must launch our crash screen
+     * *first* and only then hand off. When Sentry is **not** active, we deliberately do not chain to
+     * any downstream handler, preserving the exact pre-Sentry behaviour.
+     */
+    private fun installGlobalCrashHandler() {
+        val sentryActive = isSentryEnabled
+        val downstream = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            startCrashReportActivity(throwable)
+            if (sentryActive) {
+                downstream?.uncaughtException(thread, throwable)
+            }
+        }
+    }
+
+    private fun startCrashReportActivity(th: Throwable) {
+        th.printStackTrace()
+        startActivity(
+            Intent(this, CrashReportActivity::class.java)
+                .setAction("$packageName.error_report")
+                .apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    putExtra("error_report", getVersionReport() + "\n" + th.stackTraceToString())
+                }
+        )
+    }
+
+    companion object {
+        private const val TAG = "App"
+
+        lateinit var clipboard: ClipboardManager
+        lateinit var videoDownloadDir: String
+        lateinit var audioDownloadDir: String
+        lateinit var applicationScope: CoroutineScope
+        lateinit var connectivityManager: ConnectivityManager
+        lateinit var packageInfo: PackageInfo
+
+        // ────────────────────────────────────────────────────────────────────────────────────
+        //  Foreground-service binding
+        // ────────────────────────────────────────────────────────────────────────────────────
+        //
+        //  The download work scheduler toggles the foreground service on every *structural*
+        //  task-state transition (running ⇄ idle). startService()/stopService() are therefore
+        //  called frequently, and from two different threads:
+        //
+        //    • the work scheduler runs on Dispatchers.Default (background), and
+        //    • QuickDownloadActivity calls startService() on the main thread.
+        //
+        //  The previous implementation gated startService() on a flag that was only flipped to
+        //  `true` inside ServiceConnection.onServiceConnected — which is delivered
+        //  asynchronously on the main thread, *after* bindService() returns. That left a window
+        //  in which a second startService() (very common during a burst of state changes) saw the
+        //  flag still `false` and issued a *second* bindService() for the same connection. Each
+        //  bind needs a matching unbind, so the surplus bind leaked (logcat:
+        //  "ServiceConnectionLeaked: Service has leaked ServiceConnection ... that was originally
+        //  bound here"). Over a long session of downloading + switching apps, those leaked
+        //  bindings (and the foreground-service lifecycle callbacks they spawn on the main thread)
+        //  pile up and can starve the UI thread — exactly the "stops responding after a while,
+        //  recovers after backgrounding" symptom.
+        //
+        //  Fixes here:
+        //    1. Track binding state *synchronously* at the moment we call bind/unbind (isBound),
+        //       NOT from the async callback. This makes start/stop genuinely idempotent: a
+        //       redundant startService() while bound is a no-op, and an actual bind only happens
+        //       on a true idle→running edge.
+        //    2. Guard the whole start/stop with a lock so the background scheduler and the main
+        //       thread share one consistent view of the flag.
+        //    3. If bindService() returns false (system not bringing the service up), release the
+        //       connection we passed in, per the Android contract, so nothing leaks.
+        //
+        //  Diagnostics (this round): bindService()/unbindService() are binder IPC calls into
+        //  system_server. Under heavy system load they can take surprisingly long — and because
+        //  both run inside `serviceLock`, a slow call made by the background scheduler can briefly
+        //  block a main-thread caller on the lock. The timing logs below make any such stall
+        //  visible in logcat and (via the logcat instrumentation) as Sentry breadcrumbs, so the
+        //  watchdog's stack dumps can be correlated with a concrete cause.
+
+        private val serviceLock = Any()
+
+        @Volatile private var isBound = false
+
+        /**
+         * Public, read-only mirror of the binding state. Kept so existing call sites that read
+         * [App.isServiceRunning] continue to compile and behave as before.
+         */
+        @JvmStatic
+        val isServiceRunning: Boolean
+            get() = isBound
+
+        private val connection =
+            object : ServiceConnection {
+                override fun onServiceConnected(className: ComponentName, service: IBinder) {
+                    // Binding state is tracked synchronously at bind/unbind time (see above), not
+                    // here. We keep the cast purely as a sanity check on the returned binder.
+                    val binder = service as? DownloadService.DownloadServiceBinder
+                    Log.i(
+                        TAG,
+                        "onServiceConnected: ${className.shortClassName}" +
+                            " (binder ok=${binder != null})",
+                    )
+                }
+
+                override fun onServiceDisconnected(arg0: ComponentName) {
+                    // The service process went away (e.g. it was killed). Reflect that so a future
+                    // startService() will re-bind instead of being short-circuited by a stale flag.
+                    Log.w(TAG, "onServiceDisconnected: ${arg0.shortClassName} — service died")
+                    synchronized(serviceLock) { isBound = false }
+                }
+            }
+
+        fun startService() =
+            synchronized(serviceLock) {
+                if (isBound) return@synchronized
+                Log.i(TAG, "startService: binding DownloadService")
+                val intent = Intent(context.applicationContext, DownloadService::class.java)
+                val bindStart = SystemClock.uptimeMillis()
+                val bringingUp =
+                    try {
+                        context.applicationContext.bindService(
+                            intent,
+                            connection,
+                            Context.BIND_AUTO_CREATE,
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "startService: bindService threw", e)
+                        false
+                    }
+                val bindMs = SystemClock.uptimeMillis() - bindStart
+                if (bringingUp) {
+                    isBound = true
+                    Log.i(TAG, "startService: bound (bindService took $bindMs ms)")
+                } else {
+                    // bindService() did not start the service. We must still unbind the connection
+                    // we just registered, otherwise it leaks.
+                    Log.w(
+                        TAG,
+                        "startService: bindService returned false after $bindMs ms" +
+                            " — releasing connection",
+                    )
+                    try {
+                        context.applicationContext.unbindService(connection)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "startService: cleanup unbindService threw", e)
+                    }
+                }
+            }
+
+        fun stopService() =
+            synchronized(serviceLock) {
+                if (!isBound) return@synchronized
+                isBound = false
+                Log.i(TAG, "stopService: unbinding DownloadService")
+                val unbindStart = SystemClock.uptimeMillis()
+                try {
+                    context.applicationContext.unbindService(connection)
+                    val unbindMs = SystemClock.uptimeMillis() - unbindStart
+                    Log.i(TAG, "stopService: unbound (unbindService took $unbindMs ms)")
+                } catch (e: Exception) {
+                    // Connection was already unregistered (e.g. the service died). Nothing to do.
+                    Log.w(TAG, "stopService: unbindService threw — connection already gone", e)
+                }
+            }
+
+        val privateDownloadDir: String
+            get() =
+                getExternalPrivateDownloadDirectory().run {
+                    createEmptyFile(".nomedia")
+                    absolutePath
+                }
+
+        fun updateDownloadDir(uri: Uri, directoryType: Directory) {
+            when (directoryType) {
+                Directory.AUDIO -> {
+                    val path = FileUtil.getRealPath(uri)
+                    audioDownloadDir = path
+                    PreferenceUtil.encodeString(AUDIO_DIRECTORY, path)
+                }
+
+                Directory.VIDEO -> {
+                    val path = FileUtil.getRealPath(uri)
+                    videoDownloadDir = path
+                    PreferenceUtil.encodeString(VIDEO_DIRECTORY, path)
+                }
+
+                Directory.CUSTOM_COMMAND -> {
+                    val path = FileUtil.getRealPath(uri)
+                }
+
+                Directory.SDCARD -> {
+                    context.contentResolver?.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                    )
+                    PreferenceUtil.encodeString(SDCARD_URI, uri.toString())
+                }
+            }
+        }
+
+        fun getVersionReport(): String {
+            val versionName = packageInfo.versionName
+            // minSdk 35 ≥ 28: longVersionCode always exists, and ≥ 30 means RELEASE_OR_CODENAME
+            // always exists, so both legacy forks (and the dead `val page` that sat here) are gone.
+            val versionCode = packageInfo.longVersionCode
+            val release = Build.VERSION.RELEASE_OR_CODENAME
+            return StringBuilder()
+                .append("App version: $versionName ($versionCode)\n")
+                .append("Device information: Android $release (API ${Build.VERSION.SDK_INT})\n")
+                .append("Supported ABIs: ${Build.SUPPORTED_ABIS.contentToString()}\n")
+                .append("Yt-dlp version: ${YT_DLP_VERSION.getString()}\n")
+                .toString()
+        }
+
+        fun isFDroidBuild(): Boolean = BuildConfig.FLAVOR == "fdroid"
+
+        fun isDebugBuild(): Boolean = BuildConfig.DEBUG
+
+        @SuppressLint("StaticFieldLeak") lateinit var context: Context
+    }
+}
+9. app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt — NEW
+kotlin
+package com.junkfood.seal
+
+import android.content.Context
+import android.os.Debug
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
+import io.sentry.Sentry
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
+
+/**
+ * A main-thread responsiveness watchdog that catches the freezes Sentry's ANR detection cannot.
+ *
+ * ## Why this exists
+ *
+ * Sentry's ANRv2 integration (on Android 11+) reports ANRs from [android.app.ApplicationExitInfo]
+ * — i.e. it can only report a freeze **after the OS itself declared an ANR**, which requires the
+ * main thread to ignore an *input event* for ~5 seconds. The freeze this app suffers after heavy
+ * app-switching routinely escapes that net, in three ways:
+ *
+ *  1. The stall lasts 1–4 seconds and recovers → never an OS ANR → nothing for Sentry to report.
+ *  2. The user swipes the app away from recents while it is frozen → the exit is recorded as
+ *     `REASON_USER_REQUESTED`, not `REASON_ANR` → again nothing to report.
+ *  3. The freeze happens while no input event is pending (e.g. right as the app returns to the
+ *     foreground) → the 5-second input-dispatch clock never even starts.
+ *
+ * In all three cases the symptom is exactly what was observed: *the app visibly freezes, and no
+ * log of it exists anywhere.* This watchdog closes that gap by measuring main-looper liveness
+ * directly, in-process, with a much lower threshold ([STALL_THRESHOLD_MS] = 2 s), and writing a
+ * full diagnosis the moment a stall is confirmed — while the process is still alive.
+ *
+ * ## How it works
+ *
+ * A single daemon thread loops forever: it posts a tiny heartbeat [Runnable] to the main-thread
+ * [Handler] and then watches the clock. If the heartbeat has not executed within
+ * [STALL_THRESHOLD_MS], the main thread is by definition not processing its message queue, and we
+ * capture, once per stall:
+ *
+ *  - the **main thread's stack trace** (the smoking gun — what the main thread is doing right now),
+ *  - the stacks of **every other live thread** (to expose lock owners / binder peers),
+ *  - written to **logcat** (chunked, `Log.e`, tag `MainThreadWatchdog` — grep-able via
+ *    `adb logcat -s MainThreadWatchdog`),
+ *  - appended to a **rotating file** under `getExternalFilesDir("watchdog")` so the report survives
+ *    logcat rotation and process death, and is readable on-device with any file manager
+ *    (`Android/data/<pkg>/files/watchdog/`),
+ *  - and, when Sentry is enabled for this build, a Sentry **event** whose exception stack *is* the
+ *    main thread's stack ([MainThreadStallException]), so it groups meaningfully in the dashboard.
+ *    Sentry persists the envelope to disk immediately, so even if the user kills the frozen app a
+ *    second later, the event uploads on the next launch — this is the primary answer to
+ *    "the app froze and there are no logs".
+ *
+ * After reporting, the watchdog waits for the heartbeat to finally run, logs the total measured
+ * stall duration (a `Log.w`, which the Sentry logcat instrumentation also turns into a breadcrumb),
+ * and resumes watching. One report per stall; no repeated spam while a single long freeze persists.
+ *
+ * ## Why it is safe
+ *
+ *  - The watchdog thread is a daemon: it can never keep the process alive.
+ *  - It allocates one small object per poll (every 500 ms) and does no I/O at all until a stall is
+ *    actually detected — steady-state overhead is unmeasurable.
+ *  - Reporting work (stack collection, file write, Sentry capture) happens entirely on the
+ *    watchdog thread, never on the (already stuck) main thread.
+ *  - Every step of reporting is individually try/caught: a failure to write the file, say, never
+ *    prevents the logcat dump, and nothing here can ever crash the app.
+ *  - While a debugger is attached, detection is suspended (breakpoints freeze the main thread by
+ *    design and would otherwise produce a flood of false positives).
+ */
+object MainThreadWatchdog {
+
+    private const val TAG = "MainThreadWatchdog"
+
+    /** Main-thread unresponsiveness, in ms, at which a stall is declared and reported. */
+    private const val STALL_THRESHOLD_MS = 2_000L
+
+    /** How often the watchdog posts a heartbeat / re-checks an outstanding one. */
+    private const val POLL_INTERVAL_MS = 500L
+
+    /** Maximum number of stall report files kept in the watchdog directory (oldest pruned). */
+    private const val MAX_REPORT_FILES = 10
+
+    /** logcat truncates entries around ~4 KB; chunking keeps every line of the dump visible. */
+    private const val LOGCAT_CHUNK_CHARS = 3_500
+
+    private val installed = AtomicBoolean(false)
+
+    /**
+     * Starts the watchdog. Call once from [App.onCreate], after Sentry initialization (the
+     * [sentryEnabled] flag is decided there). Subsequent calls are no-ops.
+     *
+     * @param context used only to resolve the on-disk report directory; the application context is
+     *   taken from it immediately, so no Activity/Service can leak through here.
+     * @param sentryEnabled when false (the F-Droid flavor), the Sentry capture step is skipped
+     *   entirely and the watchdog stays purely local (logcat + file) — zero telemetry.
+     */
+    fun install(context: Context, sentryEnabled: Boolean) {
+        if (!installed.compareAndSet(false, true)) return
+        val appContext = context.applicationContext
+
+        val thread =
+            Thread(
+                {
+                    watchLoop(appContext, sentryEnabled)
+                },
+                "SealMainThreadWatchdog",
+            )
+        thread.isDaemon = true
+        thread.priority = Thread.NORM_PRIORITY
+        thread.start()
+        Log.i(
+            TAG,
+            "Installed: threshold=${STALL_THRESHOLD_MS}ms" +
+                " poll=${POLL_INTERVAL_MS}ms sentry=$sentryEnabled",
+        )
+    }
+
+    private fun watchLoop(appContext: Context, sentryEnabled: Boolean) {
+        val mainHandler = Handler(Looper.getMainLooper())
+        val mainThread = Looper.getMainLooper().thread
+
+        while (true) {
+            // A fresh token per cycle: no state is shared between cycles, so a *very* late
+            // heartbeat from a previous cycle can never be mistaken for the current one.
+            val beat = AtomicBoolean(false)
+            val postedAtUptime = SystemClock.uptimeMillis()
+            val posted = mainHandler.post { beat.set(true) }
+            if (!posted) {
+                // The main looper is quitting — the process is going away. Stop quietly.
+                Log.i(TAG, "Main looper is quitting; watchdog exiting")
+                return
+            }
+
+            if (!sleepQuietly(POLL_INTERVAL_MS)) return
+
+            if (beat.get()) continue // Healthy: heartbeat ran promptly. By far the common path.
+
+            // Heartbeat hasn't run yet. Keep waiting (in small steps) until either it runs or the
+            // stall threshold is crossed.
+            while (!beat.get() &&
+                SystemClock.uptimeMillis() - postedAtUptime < STALL_THRESHOLD_MS) {
+                if (!sleepQuietly(POLL_INTERVAL_MS)) return
+            }
+
+            if (beat.get()) continue // Recovered just under the threshold; not worth a report.
+
+            if (Debug.isDebuggerConnected() || Debug.waitingForDebugger()) {
+                // A breakpoint, not a bug. Wait out the debug session without reporting.
+                while (!beat.get()) {
+                    if (!sleepQuietly(POLL_INTERVAL_MS)) return
+                }
+                continue
+            }
+
+            // ── Stall confirmed: the main thread has processed nothing for ≥ STALL_THRESHOLD_MS ──
+            val stalledForSoFar = SystemClock.uptimeMillis() - postedAtUptime
+            reportStall(appContext, sentryEnabled, mainThread, stalledForSoFar)
+
+            // One report per stall: now simply wait for recovery, then log how long it really took.
+            while (!beat.get()) {
+                if (!sleepQuietly(POLL_INTERVAL_MS)) return
+            }
+            val totalStall = SystemClock.uptimeMillis() - postedAtUptime
+            // Log.w → also becomes a Sentry breadcrumb via the Gradle plugin's logcat
+            // instrumentation, so the recovery duration rides along with any later event.
+            Log.w(TAG, "Main thread recovered after ~${totalStall}ms of unresponsiveness")
+        }
+    }
+
+    /** @return false if interrupted (caller should exit the watch loop). */
+    private fun sleepQuietly(ms: Long): Boolean =
+        try {
+            Thread.sleep(ms)
+            true
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+
+    private fun reportStall(
+        appContext: Context,
+        sentryEnabled: Boolean,
+        mainThread: Thread,
+        stalledForMs: Long,
+    ) {
+        try {
+            // Capture the main thread's stack FIRST — it is the most important and most volatile
+            // piece of evidence. Everything below is bookkeeping around it.
+            val mainStack = mainThread.stackTrace
+            val report = buildReport(mainThread, mainStack, stalledForMs)
+
+            // 1) logcat, chunked so nothing is truncated.
+            //    Retrieve with:  adb logcat -s MainThreadWatchdog
+            logChunked(report)
+
+            // 2) Rotating on-disk copy — survives logcat rotation and process death.
+            try {
+                writeReportFile(appContext, report)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed to write stall report file", t)
+            }
+
+            // 3) Sentry event (skipped entirely for telemetry-free builds, e.g. F-Droid). The
+            //    exception's stack trace IS the main thread's stack, so the Sentry issue title and
+            //    grouping point straight at the blocking frame. options.isAttachThreads=true (set
+            //    in App.initSentry) additionally attaches all other threads' stacks server-side.
+            //    Sentry persists the envelope to its disk cache immediately, so this survives the
+            //    user force-killing the frozen app and uploads on the next launch.
+            if (sentryEnabled) {
+                try {
+                    Sentry.captureException(
+                        MainThreadStallException(
+                            "Main thread stalled for ≥ ${stalledForMs}ms (no looper progress)",
+                            mainStack,
+                        )
+                    )
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Failed to capture stall in Sentry", t)
+                }
+            }
+        } catch (t: Throwable) {
+            // Belt and braces: the watchdog must never be able to harm the app it watches.
+            Log.e(TAG, "Stall reporting failed", t)
+        }
+    }
+
+    private fun buildReport(
+        mainThread: Thread,
+        mainStack: Array<StackTraceElement>,
+        stalledForMs: Long,
+    ): String {
+        val sb = StringBuilder(8 * 1024)
+        val wallClock =
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", Locale.US).format(Date())
+        sb.append("════════ MAIN THREAD STALL ════════\n")
+        sb.append("time: ").append(wallClock).append('\n')
+        sb.append("stalledFor: ≥ ").append(stalledForMs).append(" ms (still ongoing)\n")
+        sb.append("app: ")
+            .append(BuildConfig.APPLICATION_ID)
+            .append(' ')
+            .append(BuildConfig.VERSION_NAME)
+            .append(" (")
+            .append(BuildConfig.VERSION_CODE)
+            .append(") ")
+            .append(BuildConfig.FLAVOR)
+            .append(if (BuildConfig.DEBUG) "-debug" else "")
+            .append('\n')
+
+        sb.append("\n--- main thread (the stalled one) ---\n")
+        appendThread(sb, mainThread, mainStack)
+
+        sb.append("\n--- all other threads ---\n")
+        // Sorted for stable, diff-able output; main excluded (already printed above).
+        Thread.getAllStackTraces()
+            .toList()
+            .filter { (thread, _) -> thread !== mainThread }
+            .sortedBy { (thread, _) -> thread.name }
+            .forEach { (thread, stack) ->
+                appendThread(sb, thread, stack)
+                sb.append('\n')
+            }
+        sb.append("════════ END STALL REPORT ════════")
+        return sb.toString()
+    }
+
+    private fun appendThread(sb: StringBuilder, thread: Thread, stack: Array<StackTraceElement>) {
+        sb.append('"')
+            .append(thread.name)
+            .append("\" id=")
+            .append(thread.id)
+            .append(" state=")
+            .append(thread.state)
+            .append(if (thread.isDaemon) " daemon" else "")
+            .append('\n')
+        if (stack.isEmpty()) {
+            sb.append("    <no java stack>\n")
+        } else {
+            for (element in stack) sb.append("    at ").append(element).append('\n')
+        }
+    }
+
+    private fun logChunked(report: String) {
+        var index = 0
+        var part = 1
+        val parts = (report.length + LOGCAT_CHUNK_CHARS - 1) / LOGCAT_CHUNK_CHARS
+        while (index < report.length) {
+            val end = minOf(index + LOGCAT_CHUNK_CHARS, report.length)
+            Log.e(TAG, "[stall ${part}/${parts}]\n" + report.substring(index, end))
+            index = end
+            part++
+        }
+    }
+
+    /**
+     * Writes the report to `<externalFiles>/watchdog/stall_<timestamp>.txt` (falling back to the
+     * app's internal files dir if external storage is unavailable) and prunes the directory down
+     * to the newest [MAX_REPORT_FILES] reports.
+     */
+    private fun writeReportFile(appContext: Context, report: String) {
+        val dir =
+            appContext.getExternalFilesDir("watchdog")
+                ?: File(appContext.filesDir, "watchdog").apply { mkdirs() }
+        if (!dir.exists()) dir.mkdirs()
+
+        val stamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
+        val file = File(dir, "stall_$stamp.txt")
+        file.writeText(report)
+        Log.e(TAG, "Stall report written to ${file.absolutePath}")
+
+        // Rotation: keep the newest MAX_REPORT_FILES, delete the rest. Timestamped names sort
+        // lexicographically in chronological order, so a name sort is a time sort.
+        dir.listFiles { f -> f.isFile && f.name.startsWith("stall_") }
+            ?.sortedByDescending { it.name }
+            ?.drop(MAX_REPORT_FILES)
+            ?.forEach { stale ->
+                if (!stale.delete()) Log.w(TAG, "Could not prune old report ${stale.name}")
+            }
+    }
+}
+
+/**
+ * Marker exception for Sentry whose stack trace is replaced with the **main thread's** stack at
+ * the moment of the stall. The watchdog thread's own (irrelevant) stack is discarded, so the Sentry
+ * issue is titled and grouped by the frame that actually blocked the UI.
+ */
+private class MainThreadStallException(
+    message: String,
+    mainThreadStack: Array<StackTraceElement>,
+) : RuntimeException(message) {
+    init {
+        stackTrace = mainThreadStack
+    }
+}
+10. app/src/main/java/com/junkfood/seal/MainActivity.kt
+kotlin
+package com.junkfood.seal
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import com.junkfood.seal.ui.common.LocalDarkTheme
+import com.junkfood.seal.ui.common.SettingsProvider
+import com.junkfood.seal.ui.page.AppEntry
+import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
+import com.junkfood.seal.ui.theme.SealTheme
+import com.junkfood.seal.util.matchUrlFromSharedText
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.compose.KoinContext
+
+class MainActivity : AppCompatActivity() {
+    private val dialogViewModel: DownloadDialogViewModel by viewModel()
+
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate (restored=${savedInstanceState != null})")
+
+        // ── Two lines used to sit here; both are deliberately GONE. Do not reintroduce them. ──
+        //
+        // 1. `runBlocking { setLanguage(…) }` behind an `if (SDK_INT < 33)` guard:
+        //    minSdk is now 35, so the branch could never execute — pure dead code (the AndroidX
+        //    per-app-locales service in the manifest handles locale persistence on 33+).
+        //
+        // 2. `context = this.baseContext` — the single biggest memory hazard found in this round.
+        //    It overwrote the GLOBAL App.context (used by Room/DatabaseUtil, FileUtil, service
+        //    binding, toasts, …) with this Activity's base ContextImpl. A ContextImpl holds its
+        //    Activity via mOuterContext, so every recreation of MainActivity (theme change, the
+        //    system reclaiming it during app-switching, …) leaked the previous Activity instance
+        //    together with its entire Compose composition. Under the memory pressure of heavy
+        //    app-switching, those accumulated leaks mean GC churn and progressively longer UI
+        //    pauses — the exact freeze under investigation. App.context is assigned exactly once,
+        //    in App.onCreate(), to the application context, and that is the only assignment that
+        //    may ever exist.
+        enableEdgeToEdge()
+
+        setContent {
+            KoinContext {
+                val windowSizeClass = calculateWindowSizeClass(this)
+                SettingsProvider(windowWidthSizeClass = windowSizeClass.widthSizeClass) {
+                    SealTheme(
+                        darkTheme = LocalDarkTheme.current.isDarkTheme(),
+                        isHighContrastModeEnabled = LocalDarkTheme.current.isHighContrastModeEnabled,
+                    ) {
+                        AppEntry(dialogViewModel = dialogViewModel)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val url = intent.getSharedURL()
+        Log.d(TAG, "onNewIntent: action=${intent.action} urlExtracted=${url != null}")
+        if (url != null) {
+            dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(url)))
+        }
+    }
+
+    private fun Intent.getSharedURL(): String? {
+        val intent = this
+
+        return when (intent.action) {
+            Intent.ACTION_VIEW -> {
+                intent.dataString
+            }
+
+            Intent.ACTION_SEND -> {
+                intent.getStringExtra(Intent.EXTRA_TEXT)?.let { sharedContent ->
+                    intent.removeExtra(Intent.EXTRA_TEXT)
+                    matchUrlFromSharedText(sharedContent).also { matchedUrl ->
+                        if (sharedUrlCached != matchedUrl) {
+                            sharedUrlCached = matchedUrl
+                        }
+                    }
+                }
+            }
+
+            else -> {
+                null
+            }
+        }
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
+        private var sharedUrlCached = ""
+    }
+}
+11. app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
+Logging-only additions; all round-1 throttling and round-2-compatible structure preserved verbatim. The only shape changes are cancel becoming .also { Log… } and doYourWork hoisting countRunning() into a val — both logically identical, and updateProgressThrottled deliberately stays log-free (it's the per-tick hot path; with logcat instrumentation every Log call is a breadcrumb).
+
+kotlin
+package com.junkfood.seal.download
+
+import android.app.PendingIntent
+import android.content.Context
+import android.util.Log
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import com.junkfood.seal.App
+import com.junkfood.seal.R
+import com.junkfood.seal.download.Task.DownloadState
+import com.junkfood.seal.download.Task.DownloadState.Canceled
+import com.junkfood.seal.download.Task.DownloadState.Completed
+import com.junkfood.seal.download.Task.DownloadState.Error
+import com.junkfood.seal.download.Task.DownloadState.FetchingInfo
+import com.junkfood.seal.download.Task.DownloadState.Idle
+import com.junkfood.seal.download.Task.DownloadState.ReadyWithInfo
+import com.junkfood.seal.download.Task.DownloadState.Running
+import com.junkfood.seal.download.Task.RestartableAction.Download
+import com.junkfood.seal.download.Task.RestartableAction.FetchInfo
+import com.junkfood.seal.download.Task.TypeInfo
+import com.junkfood.seal.util.DownloadUtil
+import com.junkfood.seal.util.FileUtil
+import com.junkfood.seal.util.NotificationUtil
+import com.junkfood.seal.util.PreferenceUtil
+import com.junkfood.seal.util.VideoInfo
+import com.yausername.youtubedl_android.YoutubeDL
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
+import kotlin.math.abs
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+
+private const val TAG = "DownloaderV2"
+
+private const val MAX_CONCURRENCY = 3
+
+/**
+ * Minimum interval (in milliseconds) between progress updates to the SnapshotStateMap for a single
+ * task. This prevents flooding Compose with recompositions on every yt-dlp progress callback.
+ * Notifications are still updated immediately since they don't affect the UI thread.
+ *
+ * 500ms (2 Hz per task) gives smooth visual feedback while keeping the main thread free for input
+ * events like FAB taps and scrolling.
+ */
+private const val PROGRESS_THROTTLE_MS = 500L
+
+/**
+ * Minimum change in progress (as a fraction, 0.0..1.0) required before we push an update to the
+ * SnapshotStateMap. This is a secondary guard on top of [PROGRESS_THROTTLE_MS]: even if 500ms have
+ * passed, we don't bother with a recomposition unless progress actually moved by at least 0.5%.
+ *
+ * For a stalled or very slow download this prevents pointless UI work; for a normal download
+ * progress moves much faster than 0.5% per 500ms so the time gate dominates.
+ */
+private const val PROGRESS_DELTA_THRESHOLD = 0.005f
+
+/**
+ * Debounce interval (in milliseconds) for writing the task backup to persistent storage. Progress
+ * updates fire very frequently; we don't need to serialize to MMKV on every tick.
+ */
+private const val BACKUP_DEBOUNCE_MS = 5000L
+
+interface DownloaderV2 {
+    fun getTaskStateMap(): SnapshotStateMap<Task, Task.State>
+
+    fun cancel(task: Task): Boolean
+
+    fun cancel(taskId: String): Boolean {
+        return getTaskStateMap().keys.find { it.id == taskId }?.let { cancel(it) } ?: false
+    }
+
+    fun restart(task: Task)
+
+    /** Enqueue a [Task] with an empty [Task.State] */
+    fun enqueue(task: Task)
+
+    fun enqueue(task: Task, state: Task.State)
+
+    fun enqueue(taskWithState: TaskFactory.TaskWithState) {
+        val (task, state) = taskWithState
+        enqueue(task, state)
+    }
+
+    fun remove(task: Task): Boolean
+}
+
+internal object FakeDownloaderV2 : DownloaderV2 {
+    override fun getTaskStateMap(): SnapshotStateMap<Task, Task.State> {
+        return mutableStateMapOf()
+    }
+
+    override fun cancel(task: Task): Boolean {
+        return false
+    }
+
+    override fun restart(task: Task) {}
+
+    override fun enqueue(task: Task) {}
+
+    override fun enqueue(task: Task, state: Task.State) {}
+
+    override fun remove(task: Task): Boolean {
+        return true
+    }
+}
+
+/**
+ * TODO:
+ *     - Notification
+ *     - Custom commands
+ *     - States for ViewModels
+ */
+@OptIn(FlowPreview::class)
+class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComponent {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val taskStateMap = mutableStateMapOf<Task, Task.State>()
+    private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
+
+    /**
+     * Tracks the last time each task's progress was written to [taskStateMap]. Used by
+     * [updateProgressThrottled] to avoid flooding Compose with recompositions. Key = Task.id, Value
+     * = System.currentTimeMillis() of last write.
+     */
+    private val lastProgressWriteTime = ConcurrentHashMap<String, Long>()
+
+    /**
+     * Tracks the last progress value written to [taskStateMap] for each task. Used by
+     * [updateProgressThrottled] together with [PROGRESS_DELTA_THRESHOLD] to skip writes that
+     * wouldn't visibly move the progress bar. Key = Task.id, Value = last persisted progress.
+     */
+    private val lastProgressValue = ConcurrentHashMap<String, Float>()
+
+    init {
+        // ── Work scheduler ──────────────────────────────────────────────────
+        // We map each snapshot to only the *structural* state of each task (i.e. which
+        // DownloadState subclass it is, ignoring progress/progressText within Running).
+        // This way, doYourWork() is only called when a task transitions between states
+        // (Idle → FetchingInfo → ReadyWithInfo → Running → Completed/Error/Canceled),
+        // NOT on every progress tick within Running.
+        scope.launch(Dispatchers.Default) {
+            snapshotFlow
+                .map { map -> map.mapValues { (_, state) -> state.downloadState.toStructuralKey() } }
+                .distinctUntilChanged()
+                .collect { structuralStateMap ->
+                    doYourWork()
+                    val runningCount =
+                        structuralStateMap.count { (_, key) ->
+                            key == "Running" || key == "FetchingInfo"
+                        }
+                    // Logging only: this fires once per *structural* transition (never per
+                    // progress tick), so the string build below is cheap and the line doubles as
+                    // a Sentry breadcrumb documenting every scheduler decision.
+                    Log.d(
+                        TAG,
+                        "scheduler: tasks=${structuralStateMap.size} " +
+                            "states=${structuralStateMap.values.groupingBy { it }.eachCount()} " +
+                            "-> ${if (runningCount > 0) "startService" else "stopService"}",
+                    )
+                    if (runningCount > 0) App.startService() else App.stopService()
+                }
+        }
+
+        // ── Backup persistence ──────────────────────────────────────────────
+        // Debounce writes so we don't serialize to MMKV on every progress tick.
+        scope.launch(Dispatchers.IO) {
+            // Don't write before we read
+            enqueueFromBackup()
+
+            snapshotFlow
+                .map { it.filter { it.value.downloadState !is Completed } }
+                .distinctUntilChanged()
+                .debounce(BACKUP_DEBOUNCE_MS)
+                .collect {
+                    it.forEach { Log.d(TAG, it.value.viewState.title) }
+                    PreferenceUtil.encodeTaskListBackup(it)
+                }
+        }
+    }
+
+    /**
+     * Returns a string key that represents the *type* of [DownloadState] without considering
+     * progress values. Two [Running] states with different progress will return the same key. This
+     * is used with [distinctUntilChanged] so that progress-only changes don't trigger
+     * [doYourWork()].
+     */
+    private fun DownloadState.toStructuralKey(): String =
+        when (this) {
+            is Canceled -> "Canceled"
+            is Completed -> "Completed"
+            is Error -> "Error"
+            is FetchingInfo -> "FetchingInfo"
+            Idle -> "Idle"
+            ReadyWithInfo -> "ReadyWithInfo"
+            is Running -> "Running"
+        }
+
+    private fun enqueueFromBackup() {
+        val taskList =
+            PreferenceUtil.decodeTaskListBackup()
+                .filter { it.value.downloadState !is Completed }
+                .mapValues { (_, state) ->
+                    val preState = state.downloadState
+                    val downloadState =
+                        when (preState) {
+                            is FetchingInfo,
+                            Idle -> {
+                                Canceled(action = FetchInfo)
+                            }
+                            is Running -> {
+                                Canceled(action = Download, progress = preState.progress)
+                            }
+                            ReadyWithInfo -> {
+                                Canceled(action = Download, progress = null)
+                            }
+                            else -> {
+                                preState
+                            }
+                        }
+                    state.copy(downloadState = downloadState)
+                }
+        Log.i(TAG, "enqueueFromBackup: restoring ${taskList.size} unfinished task(s)")
+        taskList.forEach(::enqueue)
+    }
+
+    private fun Map<Task, Task.State>.countRunning(): Int = count { (_, state) ->
+        state.downloadState is Running || state.downloadState is FetchingInfo
+    }
+
+    override fun getTaskStateMap(): SnapshotStateMap<Task, Task.State> {
+        return taskStateMap
+    }
+
+    override fun enqueue(task: Task) {
+        Log.d(TAG, "enqueue: id=${task.id} url=${task.url}")
+        taskStateMap +=
+            task to Task.State(Idle, null, Task.ViewState(url = task.url, title = task.url))
+    }
+
+    override fun enqueue(task: Task, state: Task.State) {
+        Log.d(TAG, "enqueue: id=${task.id} state=${state.downloadState.toStructuralKey()}")
+        taskStateMap += task to state
+    }
+
+    /**
+     * Noted the caller is responsible for stopping the [task] before removing it
+     *
+     * @return true if the task was removed
+     */
+    override fun remove(task: Task): Boolean {
+        if (taskStateMap.contains(task)) {
+            taskStateMap.remove(task)
+            clearProgressTracking(task.id)
+            Log.d(TAG, "remove: id=${task.id} removed")
+            return true
+        }
+        Log.d(TAG, "remove: id=${task.id} not found")
+        return false
+    }
+
+    override fun cancel(task: Task): Boolean =
+        task.cancelImpl().also { Log.d(TAG, "cancel: id=${task.id} success=$it") }
+
+    override fun restart(task: Task) {
+        Log.d(TAG, "restart: id=${task.id}")
+        task.restartImpl()
+    }
+
+    private var Task.state: Task.State
+        get() = taskStateMap[this]!!
+        set(value) {
+            taskStateMap[this] = value
+        }
+
+    private var Task.downloadState: DownloadState
+        get() = state.downloadState
+        set(value) {
+            val prevState = state
+            taskStateMap[this] = prevState.copy(downloadState = value)
+        }
+
+    private var Task.info: VideoInfo?
+        get() = state.videoInfo
+        set(value) {
+            val prevState = state
+            taskStateMap[this] = prevState.copy(videoInfo = value)
+        }
+
+    private var Task.viewState: Task.ViewState
+        get() = state.viewState
+        set(value) {
+            val prevState = state
+            taskStateMap[this] = prevState.copy(viewState = value)
+        }
+
+    private val Task.notificationId: Int
+        get() = id.hashCode()
+
+    /**
+     * Removes per-task throttle bookkeeping. Call when a task ends (success, failure, cancel) or
+     * is removed from the map. Safe to call multiple times.
+     */
+    private fun clearProgressTracking(taskId: String) {
+        lastProgressWriteTime.remove(taskId)
+        lastProgressValue.remove(taskId)
+    }
+
+    /**
+     * Updates the progress of a [Running] task in the [taskStateMap], but only if BOTH conditions
+     * hold:
+     *   1. At least [PROGRESS_THROTTLE_MS] milliseconds have elapsed since the last write for this
+     *      task.
+     *   2. Progress has changed by at least [PROGRESS_DELTA_THRESHOLD] since the last write.
+     *
+     * Completion (progress >= 1.0) always writes through, bypassing both gates, so the final state
+     * is never lost.
+     *
+     * This prevents flooding Compose with recompositions on every yt-dlp progress callback.
+     * Notifications are updated regardless of throttling since they don't cause UI thread pressure.
+     *
+     * NOTE: deliberately NO logging in here — this is the per-progress-tick hot path, and with the
+     * Sentry logcat instrumentation every Log call becomes a breadcrumb. Logging only happens at
+     * state *transitions* (enqueue/start/success/failure/cancel), never per tick.
+     *
+     * @return true if the SnapshotStateMap was actually updated, false if throttled
+     */
+    private fun Task.updateProgressThrottled(progress: Float, progressText: String): Boolean {
+        val isCompletion = progress >= 1f
+        if (!isCompletion) {
+            val now = System.currentTimeMillis()
+            val lastWrite = lastProgressWriteTime[id] ?: 0L
+            if (now - lastWrite < PROGRESS_THROTTLE_MS) return false
+
+            val lastProgress = lastProgressValue[id] ?: -1f
+            if (abs(progress - lastProgress) < PROGRESS_DELTA_THRESHOLD) return false
+
+            lastProgressWriteTime[id] = now
+        } else {
+            lastProgressWriteTime[id] = System.currentTimeMillis()
+        }
+
+        lastProgressValue[id] = progress
+        val currentState = downloadState
+        if (currentState is Running) {
+            downloadState = currentState.copy(progress = progress, progressText = progressText)
+        }
+        return true
+    }
+
+    /** Processes pending tasks, prioritizing downloads. */
+    private fun doYourWork() {
+        val running = taskStateMap.countRunning()
+        if (running >= MAX_CONCURRENCY) {
+            Log.v(TAG, "doYourWork: $running task(s) active >= max $MAX_CONCURRENCY, waiting")
+            return
+        }
+
+        taskStateMap.entries
+            .sortedBy { (_, state) -> state.downloadState }
+            .firstOrNull { (_, state) ->
+                state.downloadState == ReadyWithInfo || state.downloadState == Idle
+            }
+            ?.let { (task, state) ->
+                Log.v(
+                    TAG,
+                    "doYourWork: picked id=${task.id}" +
+                        " state=${state.downloadState.toStructuralKey()}",
+                )
+                when (state.downloadState) {
+                    Idle -> task.prepare()
+                    ReadyWithInfo -> task.download()
+                    else -> {
+                        throw IllegalStateException()
+                    }
+                }
+            }
+    }
+
+    private fun Task.prepare() {
+        check(downloadState == Idle)
+        if (type is TypeInfo.CustomCommand) {
+            execute()
+        } else {
+            fetchInfo()
+        }
+    }
+
+    private fun Task.fetchInfo() {
+        check(downloadState == Idle)
+        val task = this
+        val taskInfo = task.type
+        val playlistIndex = if (taskInfo is TypeInfo.Playlist) taskInfo.index else null
+        Log.i(TAG, "fetchInfo: start id=$id url=$url")
+        scope
+            .launch(Dispatchers.Default) {
+                DownloadUtil.fetchVideoInfoFromUrl(
+                        url = url,
+                        playlistIndex = playlistIndex,
+                        preferences = preferences,
+                        taskKey = id,
+                    )
+                    .onSuccess {
+                        Log.i(TAG, "fetchInfo: success id=$id")
+                        info = it
+                        downloadState = ReadyWithInfo
+                        viewState = Task.ViewState.fromVideoInfo(it)
+                    }
+                    .onFailure { throwable ->
+                        if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "fetchInfo: canceled id=$id")
+                            return@onFailure
+                        }
+                        Log.e(TAG, "fetchInfo: failed id=$id", throwable)
+                        task.downloadState = Error(throwable = throwable, action = FetchInfo)
+                        NotificationUtil.notifyError(
+                            title = viewState.title,
+                            textId = R.string.download_error_msg,
+                            notificationId = notificationId,
+                            report = throwable.stackTraceToString(),
+                        )
+                    }
+            }
+            .also { job -> downloadState = FetchingInfo(job = job, taskId = id) }
+    }
+
+    private fun Task.download() {
+        check(downloadState == ReadyWithInfo && info != null)
+        if (type is TypeInfo.CustomCommand) {
+            execute()
+            return
+        }
+        Log.i(TAG, "download: start id=$id title=${viewState.title}")
+        scope
+            .launch(Dispatchers.Default) {
+                DownloadUtil.downloadVideo(
+                        videoInfo = info,
+                        taskId = id,
+                        downloadPreferences = preferences,
+                        progressCallback = { progressPercentage, _, text ->
+                            val progress = progressPercentage / 100f
+                            when (downloadState) {
+                                is Running -> {
+                                    // ── THROTTLED WRITE ─────────────────────
+                                    // Only update the SnapshotStateMap (and
+                                    // trigger recomposition) at most once per
+                                    // PROGRESS_THROTTLE_MS, AND only when
+                                    // progress moves by at least
+                                    // PROGRESS_DELTA_THRESHOLD. Notifications
+                                    // are always updated since they're cheap.
+                                    updateProgressThrottled(progress, text)
+
+                                    // Notifications don't touch the main thread,
+                                    // so always update them for a responsive
+                                    // notification shade.
+                                    NotificationUtil.notifyProgress(
+                                        notificationId = notificationId,
+                                        progress = progressPercentage.toInt(),
+                                        text = text,
+                                        title = viewState.title,
+                                        taskId = id,
+                                    )
+                                }
+                                else -> {}
+                            }
+                        },
+                    )
+                    .onSuccess { pathList ->
+                        // Clean up throttle tracking for this task
+                        clearProgressTracking(id)
+
+                        Log.i(TAG, "download: completed id=$id files=${pathList.size}")
+                        downloadState = Completed(pathList.firstOrNull())
+
+                        // ── RELEASE VIDEOINFO ───────────────────────────────
+                        // Drop the (pot
+Continue
+
+10:16 AM
+­entially large) VideoInfo now that the
+// task is finished. A Completed task is NOT Restartable
+// (only Canceled/Error are), the UI renders from
+// viewState, the action sheet uses filePath + url, and
+// the persisted backup explicitly excludes Completed
+// entries — so nothing reads videoInfo after this point.
+// Releasing it keeps memory flat as finished downloads
+// accumulate in the queue over a long session.
+info = null
+
+                    val text =
+                        appContext.getString(
+                            if (pathList.isEmpty()) R.string.status_completed
+                            else R.string.download_finish_notification
+                        )
+                    FileUtil.createIntentForOpeningFile(pathList.firstOrNull()).run {
+                        NotificationUtil.finishNotification(
+                            notificationId,
+                            title = viewState.title,
+                            text = text,
+                            intent =
+                                if (this != null)
+                                    PendingIntent.getActivity(
+                                        appContext,
+                                        0,
+                                        this,
+                                        PendingIntent.FLAG_IMMUTABLE,
+                                    )
+                                else null,
+                        )
+                    }
+                }
+                .onFailure { throwable ->
+                    // Clean up throttle tracking for this task
+                    clearProgressTracking(id)
+
+                    if (throwable is YoutubeDL.CanceledException) {
+                        Log.d(TAG, "download: canceled id=$id")
+                        return@onFailure
+                    }
+                    Log.e(TAG, "download: failed id=$id", throwable)
+                    downloadState = Error(throwable = throwable, action = Download)
+                    NotificationUtil.notifyError(
+                        title = viewState.title,
+                        textId = R.string.fetch_info_error_msg,
+                        notificationId = notificationId,
+                        report = throwable.stackTraceToString(),
+                    )
+                }
+        }
+        .also { job -> downloadState = Running(job = job, taskId = id) }
+}
+
+private fun Task.cancelImpl(): Boolean {
+    when (val preState = downloadState) {
+        is DownloadState.Cancelable -> {
+            val res = YoutubeDL.destroyProcessById(preState.taskId)
+            Log.d(
+                TAG,
+                "cancelImpl: id=$id destroyProcess=$res state=${preState.toStructuralKey()}",
+            )
+            if (res) {
+                preState.job.cancel()
+                val progress = if (preState is Running) preState.progress else null
+                NotificationUtil.cancelNotification(notificationId)
+                downloadState =
+                    DownloadState.Canceled(action = preState.action, progress = progress)
+            }
+            // Clean up throttle tracking
+            clearProgressTracking(id)
+            return res
+        }
+        Idle -> {
+            downloadState = DownloadState.Canceled(action = FetchInfo)
+        }
+        ReadyWithInfo -> {
+            downloadState = DownloadState.Canceled(action = Download)
+        }
+
+        else -> {
+            return false
+        }
+    }
+    return true
+}
+
+private fun Task.restartImpl() {
+    when (val preState = downloadState) {
+        is DownloadState.Restartable -> {
+            downloadState =
+                when (preState.action) {
+                    Download -> ReadyWithInfo
+                    FetchInfo -> Idle
+                }
+        }
+        else -> {
+            throw IllegalStateException()
+        }
+    }
+}
+
+/**
+ * Execute a custom command task
+ *
+ * @see Task.TypeInfo.CustomCommand
+ */
+private fun Task.execute() {
+    check(downloadState == Idle)
+    check(type is TypeInfo.CustomCommand)
+    val template = type.template
+    Log.i(TAG, "execute: start custom command id=$id template=${template.name}")
+    scope
+        .launch {
+            DownloadUtil.executeCustomCommandTask(url, id, template, preferences) {
+                    progressPercentage,
+                    _,
+                    text ->
+                    val progress = progressPercentage / 100f
+                    when (downloadState) {
+                        is Running -> {
+                            // Throttle progress updates for custom commands too
+                            updateProgressThrottled(progress, text)
+
+                            NotificationUtil.makeNotificationForCustomCommand(
+                                notificationId = notificationId,
+                                taskId = id,
+                                progress = progressPercentage.toInt(),
+                                templateName = template.name,
+                                taskUrl = url,
+                                text = text,
+                            )
+                        }
+                        else -> {}
+                    }
+                }
+                .onFailure { throwable ->
+                    if (throwable is YoutubeDL.CanceledException) {
+                        Log.d(TAG, "execute: canceled id=$id")
+                        return@onFailure
+                    }
+                    Log.e(TAG, "execute: failed id=$id", throwable)
+                    downloadState = Error(throwable = throwable, action = Download)
+                    NotificationUtil.notifyError(
+                        title = viewState.title,
+                        textId = R.string.fetch_info_error_msg,
+                        notificationId = notificationId,
+                        report = throwable.stackTraceToString(),
+                    )
+                }
+                .onSuccess {
+                    // Clean up throttle tracking
+                    clearProgressTracking(id)
+
+                    Log.i(TAG, "execute: completed id=$id")
+                    downloadState = Completed(null)
+
+                    // Release VideoInfo for the finished task — see the note in download().
+                    info = null
+
+                    val text = appContext.getString(R.string.status_completed)
+
+                    NotificationUtil.finishNotification(
+                        notificationId = notificationId,
+                        title = viewState.title,
+                        text = text,
+                        intent = null,
+                    )
+                }
+        }
+        .also { downloadState = Running(job = it, taskId = id) }
+}
+}
+
+
+> One correction to apply when pasting: in the `RELEASE VIDEOINFO` comment above, "pot­entially" should read "potentially" — copy from the version I'm attaching as files below if pasting from chat mangles it.
+
+### 12. `app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt`
+
+The only Coil-touching file in the project (verified by grep). The `imageLoader = LocalContext.current.imageLoader` argument is dropped — Coil 3's `AsyncImage` resolves the same singleton itself. No external caller passes `transform`/`onState` (verified), so the type change to `coil3.compose.AsyncImagePainter.State` is fully contained.
+
+```kotlin
+package com.junkfood.seal.ui.common
+
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.DefaultAlpha
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.junkfood.seal.R
+
+/**
+ * Coil 3 migration notes (this is the ONLY file in the project that touches Coil):
+ *  - All imports moved from `coil.*` to `coil3.*`; `crossfade` is now an extension in
+ *    `coil3.request`.
+ *  - The explicit `imageLoader = LocalContext.current.imageLoader` argument is gone: Coil 3's
+ *    `AsyncImage` resolves the singleton ImageLoader itself (`SingletonImageLoader`), which is
+ *    what the old expression returned anyway — same loader, less plumbing.
+ *  - Network fetching is no longer part of Coil's core; the `coil-network-okhttp` artifact in
+ *    app/build.gradle.kts registers an OkHttp-backed fetcher via ServiceLoader. Without it, every
+ *    remote thumbnail would fail. No code here needs to reference it.
+ *  - The `transform`/`onState` parameter types are now `coil3.compose.AsyncImagePainter.State`;
+ *    no external caller passes either parameter (verified across the codebase), so the type
+ *    change is fully contained in this file.
+ */
+@Composable
+fun AsyncImageImpl(
+    model: Any?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    transform: (AsyncImagePainter.State) -> AsyncImagePainter.State =
+        AsyncImagePainter.DefaultTransform,
+    onState: ((AsyncImagePainter.State) -> Unit)? = null,
+    alignment: Alignment = Alignment.Center,
+    contentScale: ContentScale = ContentScale.Fit,
+    alpha: Float = DefaultAlpha,
+    colorFilter: ColorFilter? = null,
+    filterQuality: FilterQuality = DrawScope.DefaultFilterQuality,
+    isPreview: Boolean = LocalInspectionMode.current,
+) {
+    if (isPreview)
+        Image(
+            painter = painterResource(R.drawable.sample3),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            alignment = alignment,
+            contentScale = contentScale,
+            alpha = alpha,
+            colorFilter = colorFilter,
+        )
+    else
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(model).crossfade(true).build(),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            transform = transform,
+            onState = onState,
+            alignment = alignment,
+            contentScale = contentScale,
+            alpha = alpha,
+            colorFilter = colorFilter,
+            filterQuality = filterQuality,
+        )
+}
+```
+
+### 13–15. The three workflows
+
+`release.yml` and `android_ci.yml`: only action bumps and the Node-24 env removal; every version-generation, keystore, build, verify, and release step is byte-identical. `android.yml`: action bumps only — but note this workflow appears **vestigial and was already broken before this round**: it runs bare `gradle assembleRelease` (all flavors) and then signs from `app/build/outputs/apk/release/`, a path that hasn't existed since flavors were introduced (outputs go to `apk/<flavor>/release/`). I bumped its actions for consistency but recommend simply deleting the file.
+
+`release.yml` and `android_ci.yml` are reproduced in the attached files (and `release.yml` inline earlier in my working copy is identical to the attachment); `android.yml`:
+
+```yaml
+name: Build Release APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: set up JDK 21
+      uses: actions/setup-java@v5
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'gradle'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v4
+
+    - uses: gradle/actions/setup-gradle@v6
+
+    - run: gradle assembleRelease
+
+    - name: Sign app APK
+      id: sign_app
+      uses: ilharp/sign-android-release@nightly
+      with:
+        releaseDir: app/build/outputs/apk/release
+        signingKey: ${{ secrets.SIGNING_KEY }}
+        keyAlias: ${{ secrets.ALIAS }}
+        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.KEY_PASSWORD }}
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: signed-apks
+        path: app/build/outputs/apk/release/*-arm64-v8a-release-signed.apk
+        if-no-files-found: error
+        retention-days: 20
+```
+
+All fifteen files, exactly as reviewed, are attached here for direct download as well:
+
+Resolved filename conflicts by renaming files
+Resolved filename conflicts by renaming files
+Filename collision between the two build.gradle.kts files — copying with disambiguated names:
+
+
+Mapped file destinations and outlined validation strategy
+Mapped file destinations and outlined validation strategy
+The attached files map to: libs.versions.toml → gradle/, gradle-wrapper.properties → gradle/wrapper/, app.build.gradle.kts → app/build.gradle.kts, color.build.gradle.kts → color/build.gradle.kts, the three .yml files → .github/workflows/, the Kotlin files to their existing package paths (MainThreadWatchdog.kt is new, next to App.kt). Root build.gradle.kts, buildSrc/, and proguard-rules.pro are deliberately untouched.
+
+Caveats, stated honestly
+One ~85%-confidence item: whether material3-window-size-class still ships inside BOM 2026.05.00 without a version (M3 1.4 deprecated its APIs but I believe the artifact was still published and BOM-managed). If the build fails with "no version for material3-window-size-class", add version = "1.4.0" to that one catalog entry — a 30-second fix. Everything else in the version matrix I verified directly against current release listings.
+
+Known, intended behavior changes (the only ones): devices below Android 15 can no longer install updates, and 32-bit APKs are no longer produced — both follow from your Android-15+-only policy; the surviving ABI codes are unchanged so Obtainium updates on arm64 devices continue seamlessly. Sentry now also records OkHttp spans/breadcrumbs for the (off-main-thread) update/sponsor checks.
+
+Deliberately deferred: Kotlin 2.4.0, AGP 9.x, and BOM 2026.06.x (AGP 9 requires rewriting the APK-renaming variant block, migrating to built-in Kotlin, and waiting on Sentry plugin support — a future round on its own). Roughly 25 untouched files retain now-constant-true SDK_INT checks (lint's ObsoleteSdkInt, harmless), including QuickDownloadActivity's never-executing runBlocking branch. And android.yml should probably just be deleted, as flagged above.
+
+Validating after you push
+Watch the Release Build run on main, install the new release via Obtainium, then reproduce the heavy app-switching. The moment the UI stalls ≥2 s you'll have, for the first time, three independent records: adb logcat -s MainThreadWatchdog AppLifecycle App DownloaderV2 live; the rotating reports at Android/data/com.junkfood.seal/files/watchdog/ (readable with any on-device file manager, surviving reboot); and a MainThreadStallException issue in Sentry whose stack is the main thread at the moment of the freeze — uploaded on next launch even if you force-killed the frozen app. The activity-lifecycle and scheduler breadcrumbs on that event will show exactly what the app was doing in the seconds before. If the context-leak fix already cured the freeze, you'll simply see no stall reports — which is itself the confirmation we've been missing.
+
+
+Mainthreadwatchdog
+KT 
+
+App
+KT 
+
+Mainactivity
+KT 
+
+Downloaderv2
+KT 
+
+Asyncimageimpl
+KT 
+
+Libs.versions
+TOML 
+
+App.build.gradle
+KTS 
+
+Color.build.gradle
+KTS 
+
+Androidmanifest
+XML 
+
+Gradle
+PROPERTIES 
+
+Settings.gradle
+KTS 
+
+Gradle wrapper
+PROPERTIES 
+
+Release
+YML 
+
+Android ci
+YML 
+
+Android
+YML 
+
+Want to be notified when Claude responds?
+
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+
+
+
+
+
+
+Total usage: 25% of weekly limit with one prompt and continues 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
