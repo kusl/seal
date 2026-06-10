@@ -27,7 +27,11 @@ val splitApks = !project.hasProperty("noSplits")
 
 val abiFilterList = (properties["ABI_FILTERS"] as String).split(';')
 
-val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86" to 3, "x86_64" to 4)
+// 64-bit only as of the Android-15+ baseline (minSdk 35): every Android 15 device is 64-bit, and
+// MMKV 2.x ships no 32-bit native libraries. armeabi-v7a / x86 are therefore gone from the splits
+// below. The numeric codes for the SURVIVING ABIs are unchanged (arm64-v8a=2, x86_64=4) so the
+// per-ABI versionCode offsets stay identical and Obtainium updates keep working.
+val abiCodes = mapOf("arm64-v8a" to 2, "x86_64" to 4)
 
 // ── Version resolution ────────────────────────────────────────────────────────
 //
@@ -47,7 +51,7 @@ val currentVersionCode: Int = if (project.hasProperty("versionCodeOverride")) {
 }
 
 android {
-    compileSdk = 35
+    compileSdk = 36
 
     if (keystorePropertiesFile.exists()) {
         val keystoreProperties = Properties()
@@ -66,8 +70,11 @@ android {
 
     defaultConfig {
         applicationId = "com.junkfood.seal"
-        minSdk = 24
-        targetSdk = 35
+        // Android 15+ only, per the project's stated support policy. This makes every
+        // `SDK_INT >= 26/30/33` branch in the codebase constant-true (lint flags them as
+        // ObsoleteSdkInt; they are removed opportunistically in files touched by this round).
+        minSdk = 35
+        targetSdk = 36
         versionCode = currentVersionCode
 
         versionName = baseVersionName
@@ -89,7 +96,8 @@ android {
                 abi {
                     isEnable = true
                     reset()
-                    include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                    // 64-bit only — see the abiCodes note above.
+                    include("arm64-v8a", "x86_64")
                     isUniversalApk = true
                 }
             }
@@ -99,7 +107,6 @@ android {
     }
 
     room { schemaDirectory("$projectDir/schemas") }
-    ksp { arg("room.incremental", "true") }
 
     androidComponents {
         onVariants { variant ->
@@ -177,8 +184,6 @@ android {
         }
     }
 
-    kotlinOptions { freeCompilerArgs = freeCompilerArgs + "-opt-in=kotlin.RequiresOptIn" }
-
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
         jniLibs.useLegacyPackaging = true
@@ -207,10 +212,9 @@ sentry {
     includeProguardMapping.set(true)
     autoUploadProguardMapping.set(sentryAuthToken.map { it.isNotBlank() }.orElse(false))
 
-    // We declare io.sentry:sentry-android explicitly in the version catalog, so turn off the
-    // plugin's auto-installation. This also stops it from silently adding the OkHttp integration
-    // just because the project depends on OkHttp (we intentionally omit OkHttp instrumentation —
-    // see the note below).
+    // We declare every io.sentry:* artifact explicitly in the version catalog (sentry-android and,
+    // now, sentry-okhttp), so the plugin's auto-installation stays off — versions are pinned by us,
+    // in one place, on one shared `sentry` version.
     autoInstallation { enabled.set(false) }
 
     // Don't instrument or upload anything for the F-Droid flavor.
@@ -221,20 +225,25 @@ sentry {
     //   • DATABASE + FILE_IO  → spans for Room/SQLite and java.io file operations. Besides timing,
     //                            these power Sentry's server-side "DB/File-I/O on the main thread"
     //                            ANR root-cause detection.
+    //   • OKHTTP              → spans + breadcrumbs for every OkHttp call (update checks, sponsor
+    //                            list). Enabled now that okhttp is on a stable 5.x release; backed
+    //                            by the io.sentry:sentry-okhttp artifact added in dependencies.
     //   • logcat (VERBOSE)    → turns every android.util.Log.* call into a Sentry breadcrumb, so the
     //                            app's existing logging shows up on the timeline of every event.
     //
     // Intentionally NOT enabled:
-    //   • OKHTTP  — okhttp is pinned to 5.0.0-alpha.10 here; rather than risk the integration
-    //               against an alpha, and because the only OkHttp calls (update/sponsor checks) run
-    //               off the main thread and aren't relevant to the ANR, this is left off. Add
-    //               InstrumentationFeature.OKHTTP after upgrading okhttp to a stable release.
     //   • COMPOSE — would add navigation breadcrumbs but requires the sentry-compose-android
     //               artifact and bytecode-instruments NavControllers. Left off to keep the change
     //               minimal/low-risk; add the dependency + feature later if route breadcrumbs help.
     tracingInstrumentation {
         enabled.set(true)
-        features.set(EnumSet.of(InstrumentationFeature.DATABASE, InstrumentationFeature.FILE_IO))
+        features.set(
+            EnumSet.of(
+                InstrumentationFeature.DATABASE,
+                InstrumentationFeature.FILE_IO,
+                InstrumentationFeature.OKHTTP,
+            )
+        )
         logcat {
             enabled.set(true)
             minLevel.set(LogcatLevel.VERBOSE)
@@ -260,7 +269,11 @@ dependencies {
     implementation(libs.bundles.androidxCompose)
     implementation(libs.bundles.accompanist)
 
+    // Coil 3: compose bindings + the OkHttp-backed network fetcher. In Coil 3 the http(s) fetcher
+    // moved out of the core artifact; without coil-network-okhttp every remote thumbnail would
+    // silently fail to load. The fetcher self-registers via ServiceLoader — no code required.
     implementation(libs.coil.kt.compose)
+    implementation(libs.coil.network.okhttp)
 
     implementation(libs.kotlinx.serialization.json)
 
@@ -278,10 +291,12 @@ dependencies {
     implementation(libs.mmkv)
 
     // Sentry: crash + ANR + performance reporting. `sentry-android` is the umbrella artifact
-    // (core + NDK native-crash handler). If you add more io.sentry:* artifacts later (e.g.
-    // sentry-compose-android), keep them on this exact same version — or switch to the
-    // io.sentry:sentry-bom — to avoid the SDK's deliberate "mixed versions" init crash.
+    // (core + NDK native-crash handler); `sentry-okhttp` backs the OKHTTP instrumentation feature
+    // enabled in the sentry { } block above. Both ride the same `sentry` catalog version — keep it
+    // that way (or switch to io.sentry:sentry-bom) to avoid the SDK's deliberate "mixed versions"
+    // init crash.
     implementation(libs.sentry.android)
+    implementation(libs.sentry.okhttp)
 
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.ext)
