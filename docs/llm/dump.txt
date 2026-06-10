@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Wed Jun 10 04:03:27 PM EDT 2026
+Generated: Wed Jun 10 04:16:47 PM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -39149,7 +39149,7 @@ SIZE: 38.73 KB
 
 ================================================================================
 FILE: app/src/main/res/values-az/strings.xml
-SIZE: 33.81 KB
+SIZE: 33.86 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -39597,6 +39597,7 @@ SIZE: 33.81 KB
     <string name="saved_urls">Saxlanan bağlantılar</string>
     <string name="add_new_url">Yeni link əlavə et</string>
     <string name="add_to">%1$s-a əlavə et</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -41022,7 +41023,7 @@ SIZE: 15.40 KB
 
 ================================================================================
 FILE: app/src/main/res/values-cs/strings.xml
-SIZE: 32.92 KB
+SIZE: 32.97 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -41473,6 +41474,7 @@ SIZE: 32.92 KB
     <string name="saved_urls">Uložené odkazy</string>
     <string name="add_new_url">Přidat nový odkaz</string>
     <string name="add_to">Přidat do %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -42607,7 +42609,7 @@ SIZE: 40.87 KB
 
 ================================================================================
 FILE: app/src/main/res/values-es/strings.xml
-SIZE: 34.37 KB
+SIZE: 34.43 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -43058,6 +43060,7 @@ SIZE: 34.37 KB
     <string name="add_to">Añadir a %1$s</string>
     <string name="add_new_url">Añadir nuevo enlace</string>
     <string name="saved_urls">Enlaces guardados</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -43589,7 +43592,7 @@ SIZE: 39.63 KB
 
 ================================================================================
 FILE: app/src/main/res/values-fil/strings.xml
-SIZE: 34.02 KB
+SIZE: 34.08 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -44037,6 +44040,7 @@ SIZE: 34.02 KB
     <string name="saved_urls">Na-save na mga link</string>
     <string name="add_new_url">Magdagdag ng bagong link</string>
     <string name="add_to">Idagdag sa %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -44595,7 +44599,7 @@ SIZE: 6.15 KB
 
 ================================================================================
 FILE: app/src/main/res/values-hi/strings.xml
-SIZE: 51.94 KB
+SIZE: 52.00 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -45043,6 +45047,7 @@ SIZE: 51.94 KB
     <string name="saved_urls">सहेजे गए लिंक</string>
     <string name="add_new_url">नया लिंक शामिल करें</string>
     <string name="add_to">%1$s में शामिल करें</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -45776,7 +45781,7 @@ SIZE: 20.71 KB
 
 ================================================================================
 FILE: app/src/main/res/values-in/strings.xml
-SIZE: 31.63 KB
+SIZE: 31.68 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -46221,6 +46226,7 @@ SIZE: 31.63 KB
     <string name="saved_urls">Tautan tersimpan</string>
     <string name="add_new_url">Tambahkan tautan baru</string>
     <string name="add_to">Tambahkan ke %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -50505,7 +50511,7 @@ SIZE: 2.47 KB
 
 ================================================================================
 FILE: app/src/main/res/values-pa/strings.xml
-SIZE: 51.84 KB
+SIZE: 51.90 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -50953,6 +50959,7 @@ SIZE: 51.84 KB
     <string name="saved_urls">ਸੇਵ ਕੀਤੇ ਲਿੰਕ</string>
     <string name="add_new_url">ਨਵਾਂ ਲਿੰਕ ਸ਼ਾਮਿਲ ਕਰੋ</string>
     <string name="add_to">%1$s ਵਿੱਚ ਸ਼ਾਮਿਲ ਕਰੋ</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -52290,7 +52297,7 @@ SIZE: 33.80 KB
 
 ================================================================================
 FILE: app/src/main/res/values-pt/strings.xml
-SIZE: 33.78 KB
+SIZE: 33.83 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -52741,6 +52748,7 @@ SIZE: 33.78 KB
     <string name="saved_urls">Links salvos</string>
     <string name="add_new_url">Adicionar novo link</string>
     <string name="add_to">Adicionar a %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -53812,7 +53820,7 @@ SIZE: .27 KB
 
 ================================================================================
 FILE: app/src/main/res/values-sr/strings.xml
-SIZE: 43.73 KB
+SIZE: 43.78 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -54263,6 +54271,7 @@ SIZE: 43.73 KB
     <string name="add_to">Додај у %1$s</string>
     <string name="add_new_url">Додај нови линк</string>
     <string name="saved_urls">Сачувани линкови</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -55407,7 +55416,7 @@ SIZE: 32.49 KB
 
 ================================================================================
 FILE: app/src/main/res/values-uk/strings.xml
-SIZE: 43.30 KB
+SIZE: 43.35 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -55861,6 +55870,7 @@ SIZE: 43.30 KB
     <string name="saved_urls">Збережені посилання</string>
     <string name="add_new_url">Додати нове посилання</string>
     <string name="add_to">Додати до %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -56467,7 +56477,7 @@ SIZE: 34.05 KB
 
 ================================================================================
 FILE: app/src/main/res/values-zh-rCN/strings.xml
-SIZE: 30.12 KB
+SIZE: 30.18 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -56912,11 +56922,12 @@ SIZE: 30.12 KB
     <string name="saved_urls">保存的链接</string>
     <string name="add_new_url">添加新链接</string>
     <string name="add_to">添加到 %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
 FILE: app/src/main/res/values-zh-rTW/strings.xml
-SIZE: 29.66 KB
+SIZE: 29.72 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -57361,6 +57372,7 @@ SIZE: 29.66 KB
     <string name="saved_urls">已儲存的連結</string>
     <string name="add_new_url">新增新連結</string>
     <string name="add_to">新增至 %1$s</string>
+    <string name="abc_action_mode_done">Done</string>
 </resources>
 
 ================================================================================
@@ -57818,7 +57830,7 @@ SIZE: 31.15 KB
     <string name="saved_urls">Saved links</string>
     <string name="add_new_url">Add new link</string>
     <string name="add_to">Add to %1$s</string>
-    <string name="abc_action_mode_done">done</string>
+    <string name="abc_action_mode_done">Done</string>
     <plurals name="item_count">
         <item quantity="one">%d item</item>
         <item quantity="other">%d items</item>
