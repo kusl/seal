@@ -157,6 +157,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         structuralStateMap.count { (_, key) ->
                             key == "Running" || key == "FetchingInfo"
                         }
+                    // Logging only: this fires once per *structural* transition (never per
+                    // progress tick), so the string build below is cheap and the line doubles as
+                    // a Sentry breadcrumb documenting every scheduler decision.
+                    Log.d(
+                        TAG,
+                        "scheduler: tasks=${structuralStateMap.size} " +
+                            "states=${structuralStateMap.values.groupingBy { it }.eachCount()} " +
+                            "-> ${if (runningCount > 0) "startService" else "stopService"}",
+                    )
                     if (runningCount > 0) App.startService() else App.stopService()
                 }
         }
@@ -219,6 +228,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         }
                     state.copy(downloadState = downloadState)
                 }
+        Log.i(TAG, "enqueueFromBackup: restoring ${taskList.size} unfinished task(s)")
         taskList.forEach(::enqueue)
     }
 
@@ -231,11 +241,13 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     override fun enqueue(task: Task) {
+        Log.d(TAG, "enqueue: id=${task.id} url=${task.url}")
         taskStateMap +=
             task to Task.State(Idle, null, Task.ViewState(url = task.url, title = task.url))
     }
 
     override fun enqueue(task: Task, state: Task.State) {
+        Log.d(TAG, "enqueue: id=${task.id} state=${state.downloadState.toStructuralKey()}")
         taskStateMap += task to state
     }
 
@@ -248,14 +260,18 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         if (taskStateMap.contains(task)) {
             taskStateMap.remove(task)
             clearProgressTracking(task.id)
+            Log.d(TAG, "remove: id=${task.id} removed")
             return true
         }
+        Log.d(TAG, "remove: id=${task.id} not found")
         return false
     }
 
-    override fun cancel(task: Task): Boolean = task.cancelImpl()
+    override fun cancel(task: Task): Boolean =
+        task.cancelImpl().also { Log.d(TAG, "cancel: id=${task.id} success=$it") }
 
     override fun restart(task: Task) {
+        Log.d(TAG, "restart: id=${task.id}")
         task.restartImpl()
     }
 
@@ -311,6 +327,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
      * This prevents flooding Compose with recompositions on every yt-dlp progress callback.
      * Notifications are updated regardless of throttling since they don't cause UI thread pressure.
      *
+     * NOTE: deliberately NO logging in here — this is the per-progress-tick hot path, and with the
+     * Sentry logcat instrumentation every Log call becomes a breadcrumb. Logging only happens at
+     * state *transitions* (enqueue/start/success/failure/cancel), never per tick.
+     *
      * @return true if the SnapshotStateMap was actually updated, false if throttled
      */
     private fun Task.updateProgressThrottled(progress: Float, progressText: String): Boolean {
@@ -338,7 +358,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
 
     /** Processes pending tasks, prioritizing downloads. */
     private fun doYourWork() {
-        if (taskStateMap.countRunning() >= MAX_CONCURRENCY) return
+        val running = taskStateMap.countRunning()
+        if (running >= MAX_CONCURRENCY) {
+            Log.v(TAG, "doYourWork: $running task(s) active >= max $MAX_CONCURRENCY, waiting")
+            return
+        }
 
         taskStateMap.entries
             .sortedBy { (_, state) -> state.downloadState }
@@ -346,6 +370,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 state.downloadState == ReadyWithInfo || state.downloadState == Idle
             }
             ?.let { (task, state) ->
+                Log.v(
+                    TAG,
+                    "doYourWork: picked id=${task.id}" +
+                        " state=${state.downloadState.toStructuralKey()}",
+                )
                 when (state.downloadState) {
                     Idle -> task.prepare()
                     ReadyWithInfo -> task.download()
@@ -370,6 +399,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         val task = this
         val taskInfo = task.type
         val playlistIndex = if (taskInfo is TypeInfo.Playlist) taskInfo.index else null
+        Log.i(TAG, "fetchInfo: start id=$id url=$url")
         scope
             .launch(Dispatchers.Default) {
                 DownloadUtil.fetchVideoInfoFromUrl(
@@ -379,14 +409,17 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         taskKey = id,
                     )
                     .onSuccess {
+                        Log.i(TAG, "fetchInfo: success id=$id")
                         info = it
                         downloadState = ReadyWithInfo
                         viewState = Task.ViewState.fromVideoInfo(it)
                     }
                     .onFailure { throwable ->
                         if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "fetchInfo: canceled id=$id")
                             return@onFailure
                         }
+                        Log.e(TAG, "fetchInfo: failed id=$id", throwable)
                         task.downloadState = Error(throwable = throwable, action = FetchInfo)
                         NotificationUtil.notifyError(
                             title = viewState.title,
@@ -405,6 +438,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             execute()
             return
         }
+        Log.i(TAG, "download: start id=$id title=${viewState.title}")
         scope
             .launch(Dispatchers.Default) {
                 DownloadUtil.downloadVideo(
@@ -443,6 +477,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         // Clean up throttle tracking for this task
                         clearProgressTracking(id)
 
+                        Log.i(TAG, "download: completed id=$id files=${pathList.size}")
                         downloadState = Completed(pathList.firstOrNull())
 
                         // ── RELEASE VIDEOINFO ───────────────────────────────
@@ -483,8 +518,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         clearProgressTracking(id)
 
                         if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "download: canceled id=$id")
                             return@onFailure
                         }
+                        Log.e(TAG, "download: failed id=$id", throwable)
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
@@ -501,6 +538,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         when (val preState = downloadState) {
             is DownloadState.Cancelable -> {
                 val res = YoutubeDL.destroyProcessById(preState.taskId)
+                Log.d(
+                    TAG,
+                    "cancelImpl: id=$id destroyProcess=$res state=${preState.toStructuralKey()}",
+                )
                 if (res) {
                     preState.job.cancel()
                     val progress = if (preState is Running) preState.progress else null
@@ -550,6 +591,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         check(downloadState == Idle)
         check(type is TypeInfo.CustomCommand)
         val template = type.template
+        Log.i(TAG, "execute: start custom command id=$id template=${template.name}")
         scope
             .launch {
                 DownloadUtil.executeCustomCommandTask(url, id, template, preferences) {
@@ -576,8 +618,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                     }
                     .onFailure { throwable ->
                         if (throwable is YoutubeDL.CanceledException) {
+                            Log.d(TAG, "execute: canceled id=$id")
                             return@onFailure
                         }
+                        Log.e(TAG, "execute: failed id=$id", throwable)
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
@@ -590,6 +634,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         // Clean up throttle tracking
                         clearProgressTracking(id)
 
+                        Log.i(TAG, "execute: completed id=$id")
                         downloadState = Completed(null)
 
                         // Release VideoInfo for the finished task — see the note in download().
