@@ -1,4 +1,4 @@
-kushal@fedora:~/src/dotnet/DistributedTasking$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
+kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
 mine
 origin
 
@@ -19,9 +19,9 @@ sys	0m0.002s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.213s
+real	0m0.233s
 user	0m0.011s
-sys	0m0.010s
+sys	0m0.013s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -33,57 +33,47 @@ sys	0m0.010s
     main pushes to main (fast-forwardable)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.576s
-user	0m0.010s
-sys	0m0.007s
+real	0m0.704s
+user	0m0.006s
+sys	0m0.010s
 
-real	0m0.131s
-user	0m0.014s
-sys	0m0.012s
+real	0m0.121s
+user	0m0.013s
+sys	0m0.011s
 On branch main
-Your branch is ahead of 'origin/main' by 39 commits.
+Your branch is ahead of 'origin/main' by 41 commits.
   (use "git push" to publish your local commits)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	deleted:    app/app.build.gradle.kts
+	modified:   app/build.gradle.kts
+	modified:   color/build.gradle.kts
+	deleted:    color/color.build.gradle.kts
+	modified:   docs/llm/claude.md
 
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
-	modified:   .github/workflows/android.yml
-	modified:   .github/workflows/android_ci.yml
-	modified:   .github/workflows/release.yml
-	modified:   app/src/main/AndroidManifest.xml
-	modified:   app/src/main/java/com/junkfood/seal/App.kt
-	modified:   app/src/main/java/com/junkfood/seal/MainActivity.kt
-	modified:   app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
-	modified:   app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
-	modified:   gradle.properties
-	modified:   gradle/libs.versions.toml
-	modified:   gradle/wrapper/gradle-wrapper.properties
-	modified:   settings.gradle.kts
+	modified:   README.md
 
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	app/app.build.gradle.kts
-	app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
-	color/color.build.gradle.kts
 
-no changes added to commit (use "git add" and/or "git commit -a")
-
-real	0m0.007s
+real	0m0.009s
 user	0m0.002s
-sys	0m0.005s
-Enumerating objects: 14, done.
-Counting objects: 100% (14/14), done.
+sys	0m0.006s
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (8/8), done.
-Writing objects: 100% (10/10), 72.45 KiB | 18.11 MiB/s, done.
-Total 10 (delta 5), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (5/5), completed with 3 local objects.
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (6/6), 1.49 KiB | 1.49 MiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
 To github.com:kusl/seal.git
-   2443887a..f0a30cc5  main -> main
+   bed9490b..8fe1cd28  main -> main
 
-real	0m1.320s
-user	0m0.018s
-sys	0m0.011s
+real	0m1.499s
+user	0m0.009s
+sys	0m0.012s
 * remote mine
   Fetch URL: git@github.com:kusl/seal.git
   Push  URL: git@github.com:kusl/seal.git
@@ -95,9 +85,9 @@ sys	0m0.011s
     main pushes to main (up to date)
     v1.x pushes to v1.x (up to date)
 
-real	0m0.510s
-user	0m0.010s
-sys	0m0.004s
+real	0m0.541s
+user	0m0.007s
+sys	0m0.006s
 ==============================================
   Generating Clean Project Export
 ==============================================
@@ -150,6 +140,7 @@ Processed: app/src/main/java/com/junkfood/seal/CrashReportActivity.kt
 Processed: app/src/main/java/com/junkfood/seal/DownloadService.kt
 Processed: app/src/main/java/com/junkfood/seal/Downloader.kt
 Processed: app/src/main/java/com/junkfood/seal/MainActivity.kt
+Processed: app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
 Processed: app/src/main/java/com/junkfood/seal/NotificationActionReceiver.kt
 Processed: app/src/main/java/com/junkfood/seal/QuickDownloadActivity.kt
 Processed: app/src/main/java/com/junkfood/seal/database/AppDatabase.kt
@@ -471,93 +462,73 @@ Processed: translations/README-zh_Hant.md
 
 Export Complete: docs/llm/dump.txt
 
-real	0m3.629s
-user	0m1.888s
-sys	0m2.459s
+real	0m3.656s
+user	0m1.923s
+sys	0m2.379s
 On branch main
-Your branch is ahead of 'origin/main' by 39 commits.
-  (use "git push" to publish your local commits)
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	modified:   .github/workflows/android.yml
-	modified:   .github/workflows/android_ci.yml
-	modified:   .github/workflows/release.yml
-	modified:   app/src/main/AndroidManifest.xml
-	modified:   app/src/main/java/com/junkfood/seal/App.kt
-	modified:   app/src/main/java/com/junkfood/seal/MainActivity.kt
-	modified:   app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
-	modified:   app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
-	modified:   docs/llm/dump.txt
-	modified:   gradle.properties
-	modified:   gradle/libs.versions.toml
-	modified:   gradle/wrapper/gradle-wrapper.properties
-	modified:   settings.gradle.kts
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-	app/app.build.gradle.kts
-	app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
-	color/color.build.gradle.kts
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
-real	0m0.006s
-user	0m0.000s
-sys	0m0.006s
-warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
-
-real	0m0.052s
-user	0m0.034s
-sys	0m0.007s
-On branch main
-Your branch is ahead of 'origin/main' by 39 commits.
+Your branch is ahead of 'origin/main' by 41 commits.
   (use "git push" to publish your local commits)
 
 Changes to be committed:
   (use "git restore --staged <file>..." to unstage)
-	modified:   .github/workflows/android.yml
-	modified:   .github/workflows/android_ci.yml
-	modified:   .github/workflows/release.yml
-	new file:   app/app.build.gradle.kts
-	modified:   app/src/main/AndroidManifest.xml
-	modified:   app/src/main/java/com/junkfood/seal/App.kt
-	modified:   app/src/main/java/com/junkfood/seal/MainActivity.kt
-	new file:   app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
-	modified:   app/src/main/java/com/junkfood/seal/download/DownloaderV2.kt
-	modified:   app/src/main/java/com/junkfood/seal/ui/common/AsyncImageImpl.kt
-	new file:   color/color.build.gradle.kts
+	deleted:    app/app.build.gradle.kts
+	modified:   app/build.gradle.kts
+	modified:   color/build.gradle.kts
+	deleted:    color/color.build.gradle.kts
+	modified:   docs/llm/claude.md
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   README.md
 	modified:   docs/llm/dump.txt
-	modified:   gradle.properties
-	modified:   gradle/libs.versions.toml
-	modified:   gradle/wrapper/gradle-wrapper.properties
-	modified:   settings.gradle.kts
+
+
+real	0m0.007s
+user	0m0.002s
+sys	0m0.005s
+warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
+
+real	0m0.038s
+user	0m0.029s
+sys	0m0.009s
+On branch main
+Your branch is ahead of 'origin/main' by 41 commits.
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   README.md
+	deleted:    app/app.build.gradle.kts
+	modified:   app/build.gradle.kts
+	modified:   color/build.gradle.kts
+	deleted:    color/color.build.gradle.kts
+	modified:   docs/llm/claude.md
+	modified:   docs/llm/dump.txt
 
 
 real	0m0.021s
 user	0m0.014s
 sys	0m0.007s
-[main bed9490b] run dump
- 16 files changed, 1337 insertions(+), 260 deletions(-)
- create mode 100644 app/app.build.gradle.kts
- create mode 100644 app/src/main/java/com/junkfood/seal/MainThreadWatchdog.kt
- create mode 100644 color/color.build.gradle.kts
+[main 51df1ff3] run dump
+ 7 files changed, 771 insertions(+), 633 deletions(-)
+ delete mode 100644 app/app.build.gradle.kts
+ delete mode 100644 color/color.build.gradle.kts
 
-real	0m0.043s
+real	0m0.046s
 user	0m0.029s
-sys	0m0.014s
-Enumerating objects: 66, done.
-Counting objects: 100% (66/66), done.
+sys	0m0.017s
+Enumerating objects: 17, done.
+Counting objects: 100% (17/17), done.
 Delta compression using up to 16 threads
-Compressing objects: 100% (31/31), done.
-Writing objects: 100% (35/35), 29.08 KiB | 1.32 MiB/s, done.
-Total 35 (delta 22), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (22/22), completed with 22 local objects.
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (9/9), 21.02 KiB | 978.00 KiB/s, done.
+Total 9 (delta 6), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (6/6), completed with 6 local objects.
 To github.com:kusl/seal.git
-   f0a30cc5..bed9490b  main -> main
+   8fe1cd28..51df1ff3  main -> main
 
-real	0m1.671s
-user	0m0.043s
-sys	0m0.023s
+real	0m1.608s
+user	0m0.052s
+sys	0m0.028s
 kushal@fedora:~/src/kotlin/Seal$ 
