@@ -26,7 +26,6 @@ import com.google.accompanist.web.AccompanistWebChromeClient
 import com.google.accompanist.web.AccompanistWebViewClient
 import com.google.accompanist.web.WebView
 import com.google.accompanist.web.rememberWebViewState
-import com.google.android.material.R
 import com.junkfood.seal.util.PreferenceUtil.updateString
 import com.junkfood.seal.util.USER_AGENT_STRING
 import com.junkfood.seal.util.connectWithDelimiter
@@ -102,7 +101,17 @@ fun WebViewPage(cookiesViewModel: CookiesViewModel, onDismissRequest: () -> Unit
                 },
                 actions = {
                     TextButton(onClick = onDismissRequest) {
-                        Text(text = stringResource(id = R.string.abc_action_mode_done))
+                        // "Done", borrowed from AppCompat so it ships pre-translated in every
+                        // locale. It must be referenced through *AppCompat's* R class: starting
+                        // with AGP 9, R classes no longer inherit entries from their
+                        // dependencies, so the old route via com.google.android.material.R
+                        // stopped resolving ("Unresolved reference 'abc_action_mode_done'").
+                        Text(
+                            text =
+                                stringResource(
+                                    id = androidx.appcompat.R.string.abc_action_mode_done
+                                )
+                        )
                     }
                 },
             )

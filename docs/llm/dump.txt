@@ -1,6 +1,6 @@
 ===============================================================================
 PROJECT EXPORT (GIT TRACKED ONLY)
-Generated: Wed Jun 10 05:13:59 PM EDT 2026
+Generated: Wed Jun 10 08:29:37 PM EDT 2026
 Project Path: /home/kushal/src/kotlin/Seal
 ===============================================================================
 
@@ -3284,7 +3284,7 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: app/build.gradle.kts
-SIZE: 16.05 KB
+SIZE: 18.18 KB
 ================================================================================
 
 @file:Suppress("UnstableApiUsage")
@@ -3376,12 +3376,16 @@ android {
     defaultConfig {
         applicationId = "com.junkfood.seal"
 
-        // Android 14+ (minSdk 34). Every `SDK_INT >= 26/30/33/34` guard in the
-        // codebase remains valid; nothing in the app calls an API-35+ symbol
-        // unguarded (audited in this round), so lowering from 35 is purely
-        // additive device coverage.
+        // Android 14+ (minSdk 34) — your call this round ("I decided to allow
+        // sdk 34"). Note: the previous revision of this file *said* 34 in this
+        // comment but actually set release(33); code and comment now agree.
+        // Every `SDK_INT >= 26/30/33/34` guard in the codebase remains valid
+        // and nothing calls an API-35+ symbol unguarded, so 34 is safe. If you
+        // ever want Android 13 devices too, change this and the matching value
+        // in color/build.gradle.kts to release(33) — everything else compiles
+        // identically.
         minSdk {
-            version = release(33)
+            version = release(34)
         }
 
         // targetSdk 37 opts into Android 17 runtime behavior. The changes were
@@ -3526,7 +3530,25 @@ android {
 
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
-        jniLibs.useLegacyPackaging = true
+        jniLibs {
+            // youtubedl-android needs its payloads extracted to real files on disk at install
+            // time (it unzips libpython.zip.so & friends at runtime), so native libs are
+            // packaged compressed + extracted. This DSL flag is ALSO what injects
+            // android:extractNativeLibs="true" into the merged manifest — the literal
+            // attribute has therefore been removed from AndroidManifest.xml, which silences
+            // the "extractNativeLibs should not be specified in this source
+            // AndroidManifest.xml" build warning while producing an identical merged manifest.
+            useLegacyPackaging = true
+
+            // libaria2c.zip.so / libffmpeg.zip.so / libpython.zip.so are NOT shared libraries:
+            // youtubedl-android ships zip archives renamed *.so so the installer drops them
+            // into the app's native-lib directory. llvm-strip cannot parse a zip ("not
+            // recognized as a valid object file") and AGP fell back to packaging them
+            // untouched — after printing 12 errors per build. Matching them here makes AGP
+            // skip the strip attempt entirely: byte-identical APK contents, zero log noise.
+            // Real ELF libraries (Sentry NDK, MMKV) don't match and keep being stripped.
+            keepDebugSymbols += "**/*.zip.so"
+        }
     }
     androidResources { generateLocaleConfig = true }
 }
@@ -3635,6 +3657,14 @@ dependencies {
     implementation(libs.okhttp)
 
     implementation(libs.bundles.youtubedlAndroid)
+
+    // Storage Access Framework helper: FileUtil.kt imports
+    // androidx.documentfile.provider.DocumentFile directly to open/share/size/delete downloads
+    // that live behind content:// URIs. Direct use ⇒ direct declaration. It compiled before this
+    // round only because the pre-upgrade dependency tree leaked the artifact onto the compile
+    // classpath transitively; the upgraded tree doesn't, hence the "Unresolved reference
+    // 'documentfile'" errors this line fixes.
+    implementation(libs.androidx.documentfile)
 
     implementation(libs.mmkv)
 
@@ -4353,7 +4383,7 @@ class ExampleInstrumentedTest {
 
 ================================================================================
 FILE: app/src/main/AndroidManifest.xml
-SIZE: 6.53 KB
+SIZE: 6.99 KB
 ================================================================================
 
 <?xml version="1.0" encoding="utf-8"?>
@@ -4381,11 +4411,18 @@ SIZE: 6.53 KB
         </intent>
     </queries>
 
+    <!--
+      android:extractNativeLibs is intentionally NOT declared here. It is injected into the
+      merged manifest by `packaging { jniLibs { useLegacyPackaging = true } }` in
+      app/build.gradle.kts — the AGP-blessed home for it. Declaring it in both places is what
+      produced the "extractNativeLibs should not be specified in this source AndroidManifest.xml"
+      warning on every build. Do not re-add it; youtubedl-android still gets its extracted
+      native files either way.
+    -->
     <application
         android:name=".App"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
-        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -29986,7 +30023,7 @@ fun ProxyConfigurationDialog(onDismissRequest: () -> Unit = {}) {
 
 ================================================================================
 FILE: app/src/main/java/com/junkfood/seal/ui/page/settings/network/WebViewPage.kt
-SIZE: 5.22 KB
+SIZE: 5.81 KB
 ================================================================================
 
 package com.junkfood.seal.ui.page.settings.network
@@ -30017,7 +30054,6 @@ import com.google.accompanist.web.AccompanistWebChromeClient
 import com.google.accompanist.web.AccompanistWebViewClient
 import com.google.accompanist.web.WebView
 import com.google.accompanist.web.rememberWebViewState
-import com.google.android.material.R
 import com.junkfood.seal.util.PreferenceUtil.updateString
 import com.junkfood.seal.util.USER_AGENT_STRING
 import com.junkfood.seal.util.connectWithDelimiter
@@ -30093,7 +30129,17 @@ fun WebViewPage(cookiesViewModel: CookiesViewModel, onDismissRequest: () -> Unit
                 },
                 actions = {
                     TextButton(onClick = onDismissRequest) {
-                        Text(text = stringResource(id = R.string.abc_action_mode_done))
+                        // "Done", borrowed from AppCompat so it ships pre-translated in every
+                        // locale. It must be referenced through *AppCompat's* R class: starting
+                        // with AGP 9, R classes no longer inherit entries from their
+                        // dependencies, so the old route via com.google.android.material.R
+                        // stopped resolving ("Unresolved reference 'abc_action_mode_done'").
+                        Text(
+                            text =
+                                stringResource(
+                                    id = androidx.appcompat.R.string.abc_action_mode_done
+                                )
+                        )
                     }
                 },
             )
@@ -58069,7 +58115,7 @@ SIZE: 0 KB
 
 ================================================================================
 FILE: color/build.gradle.kts
-SIZE: 1.87 KB
+SIZE: 1.88 KB
 ================================================================================
 
 plugins {
@@ -58089,11 +58135,11 @@ android {
     }
 
     defaultConfig {
-        // Matches :app — the library is never consumed anywhere else. (AGP 9
+        // Matches :app (minSdk 34) — the library is never consumed anywhere else. (AGP 9
         // also *requires* consumers to compile with the same-or-higher
         // compileSdk than their libraries, which :app satisfies at 37.)
         minSdk {
-            version = release(33)
+            version = release(34)
         }
     }
 
@@ -61319,7 +61365,7 @@ ABI_FILTERS=arm64-v8a
 
 ================================================================================
 FILE: gradle/libs.versions.toml
-SIZE: 11.59 KB
+SIZE: 12.30 KB
 ================================================================================
 
 [versions]
@@ -61374,6 +61420,16 @@ androidxAppCompat = "1.7.1"
 androidxActivity = "1.13.0"
 graphics = "1.0.1"
 constraintLayout = "1.1.1"
+
+# Storage Access Framework helper. FileUtil.kt imports
+# androidx.documentfile.provider.DocumentFile *directly* (opening/sharing/sizing/
+# deleting downloads behind content:// URIs), but the artifact had never been
+# declared — it only ever reached the compile classpath as a transitive leak of
+# the pre-upgrade dependency tree. The upgraded June-2026 tree no longer exposes
+# it, which surfaced as "Unresolved reference 'documentfile'" in FileUtil.kt.
+# Rule restored: code that is used directly gets declared directly.
+# 1.1.0 (April 2025) is the latest stable release.
+androidxDocumentFile = "1.1.0"
 
 androidxLifecycle = "2.10.0"
 androidxNavigation = "2.9.8"
@@ -61430,6 +61486,7 @@ sentryGradlePlugin = "6.10.0"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "androidxDocumentFile" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }

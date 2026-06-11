@@ -15,11 +15,11 @@ android {
     }
 
     defaultConfig {
-        // Matches :app — the library is never consumed anywhere else. (AGP 9
+        // Matches :app (minSdk 34) — the library is never consumed anywhere else. (AGP 9
         // also *requires* consumers to compile with the same-or-higher
         // compileSdk than their libraries, which :app satisfies at 37.)
         minSdk {
-            version = release(33)
+            version = release(34)
         }
     }
 
