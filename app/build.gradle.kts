@@ -87,12 +87,16 @@ android {
     defaultConfig {
         applicationId = "com.junkfood.seal"
 
-        // Android 14+ (minSdk 34). Every `SDK_INT >= 26/30/33/34` guard in the
-        // codebase remains valid; nothing in the app calls an API-35+ symbol
-        // unguarded (audited in this round), so lowering from 35 is purely
-        // additive device coverage.
+        // Android 14+ (minSdk 34) — your call this round ("I decided to allow
+        // sdk 34"). Note: the previous revision of this file *said* 34 in this
+        // comment but actually set release(33); code and comment now agree.
+        // Every `SDK_INT >= 26/30/33/34` guard in the codebase remains valid
+        // and nothing calls an API-35+ symbol unguarded, so 34 is safe. If you
+        // ever want Android 13 devices too, change this and the matching value
+        // in color/build.gradle.kts to release(33) — everything else compiles
+        // identically.
         minSdk {
-            version = release(33)
+            version = release(34)
         }
 
         // targetSdk 37 opts into Android 17 runtime behavior. The changes were
@@ -237,7 +241,25 @@ android {
 
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
-        jniLibs.useLegacyPackaging = true
+        jniLibs {
+            // youtubedl-android needs its payloads extracted to real files on disk at install
+            // time (it unzips libpython.zip.so & friends at runtime), so native libs are
+            // packaged compressed + extracted. This DSL flag is ALSO what injects
+            // android:extractNativeLibs="true" into the merged manifest — the literal
+            // attribute has therefore been removed from AndroidManifest.xml, which silences
+            // the "extractNativeLibs should not be specified in this source
+            // AndroidManifest.xml" build warning while producing an identical merged manifest.
+            useLegacyPackaging = true
+
+            // libaria2c.zip.so / libffmpeg.zip.so / libpython.zip.so are NOT shared libraries:
+            // youtubedl-android ships zip archives renamed *.so so the installer drops them
+            // into the app's native-lib directory. llvm-strip cannot parse a zip ("not
+            // recognized as a valid object file") and AGP fell back to packaging them
+            // untouched — after printing 12 errors per build. Matching them here makes AGP
+            // skip the strip attempt entirely: byte-identical APK contents, zero log noise.
+            // Real ELF libraries (Sentry NDK, MMKV) don't match and keep being stripped.
+            keepDebugSymbols += "**/*.zip.so"
+        }
     }
     androidResources { generateLocaleConfig = true }
 }
@@ -346,6 +368,14 @@ dependencies {
     implementation(libs.okhttp)
 
     implementation(libs.bundles.youtubedlAndroid)
+
+    // Storage Access Framework helper: FileUtil.kt imports
+    // androidx.documentfile.provider.DocumentFile directly to open/share/size/delete downloads
+    // that live behind content:// URIs. Direct use ⇒ direct declaration. It compiled before this
+    // round only because the pre-upgrade dependency tree leaked the artifact onto the compile
+    // classpath transitively; the upgraded tree doesn't, hence the "Unresolved reference
+    // 'documentfile'" errors this line fixes.
+    implementation(libs.androidx.documentfile)
 
     implementation(libs.mmkv)
 
