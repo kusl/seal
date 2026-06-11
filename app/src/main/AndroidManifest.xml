@@ -23,11 +23,18 @@
         </intent>
     </queries>
 
+    <!--
+      android:extractNativeLibs is intentionally NOT declared here. It is injected into the
+      merged manifest by `packaging { jniLibs { useLegacyPackaging = true } }` in
+      app/build.gradle.kts — the AGP-blessed home for it. Declaring it in both places is what
+      produced the "extractNativeLibs should not be specified in this source AndroidManifest.xml"
+      warning on every build. Do not re-add it; youtubedl-android still gets its extracted
+      native files either way.
+    -->
     <application
         android:name=".App"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
-        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

@@ -51,6 +51,16 @@ androidxActivity = "1.13.0"
 graphics = "1.0.1"
 constraintLayout = "1.1.1"
 
+# Storage Access Framework helper. FileUtil.kt imports
+# androidx.documentfile.provider.DocumentFile *directly* (opening/sharing/sizing/
+# deleting downloads behind content:// URIs), but the artifact had never been
+# declared — it only ever reached the compile classpath as a transitive leak of
+# the pre-upgrade dependency tree. The upgraded June-2026 tree no longer exposes
+# it, which surfaced as "Unresolved reference 'documentfile'" in FileUtil.kt.
+# Rule restored: code that is used directly gets declared directly.
+# 1.1.0 (April 2025) is the latest stable release.
+androidxDocumentFile = "1.1.0"
+
 androidxLifecycle = "2.10.0"
 androidxNavigation = "2.9.8"
 
@@ -106,6 +116,7 @@ sentryGradlePlugin = "6.10.0"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 android-material = { group = "com.google.android.material", name = "material", version.ref = "androidMaterial" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "androidxDocumentFile" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
