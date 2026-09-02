@@ -1,3 +1,94 @@
+kushal@fedora:~/src/dotnet/myrestaurant$ cd /home/kushal/src/kotlin/Seal; time bash export.sh > /home/kushal/src/kotlin/Seal/docs/llm/output.txt
+
+real	0m3.661s
+user	0m1.867s
+sys	0m2.432s
+kushal@fedora:~/src/kotlin/Seal$ cd ~/src/kotlin/Seal/; time git remote show; time git remote show origin; time git remote show mine; time git fetch; time git status; time git push mine --all; time git remote show mine; time bash export.sh; time git status; time git add .; time git status; time git commit --message "run dump"; time git push mine --all;
+mine
+origin
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.001s
+* remote origin
+  Fetch URL: https://github.com/JunkFood02/Seal
+  Push  URL: https://github.com/JunkFood02/Seal
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local branches configured for 'git pull':
+    main merges with remote main
+    v1.x merges with remote v1.x
+  Local refs configured for 'git push':
+    main pushes to main (local out of date)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.469s
+user	0m0.012s
+sys	0m0.010s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local refs configured for 'git push':
+    main pushes to main (fast-forwardable)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.566s
+user	0m0.006s
+sys	0m0.013s
+remote: Enumerating objects: 9, done.
+remote: Counting objects: 100% (9/9), done.
+remote: Compressing objects: 100% (9/9), done.
+remote: Total 9 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (9/9), 5.14 KiB | 1.28 MiB/s, done.
+From https://github.com/JunkFood02/Seal
+   0acf5f70..63bd8a4d  main       -> origin/main
+
+real	0m1.051s
+user	0m0.021s
+sys	0m0.021s
+On branch main
+Your branch and 'origin/main' have diverged,
+and have 60 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+nothing to commit, working tree clean
+
+real	0m0.006s
+user	0m0.001s
+sys	0m0.005s
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (6/6), 599 bytes | 599.00 KiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
+To github.com:kusl/seal.git
+   6c5332bb..eeb679c1  main -> main
+
+real	0m1.877s
+user	0m0.024s
+sys	0m0.022s
+* remote mine
+  Fetch URL: git@github.com:kusl/seal.git
+  Push  URL: git@github.com:kusl/seal.git
+  HEAD branch: main
+  Remote branches:
+    main tracked
+    v1.x tracked
+  Local refs configured for 'git push':
+    main pushes to main (up to date)
+    v1.x pushes to v1.x (up to date)
+
+real	0m0.632s
+user	0m0.006s
+sys	0m0.008s
 ==============================================
   Generating Clean Project Export
 ==============================================
@@ -372,3 +463,106 @@ Processed: translations/README-zh_Hans.md
 Processed: translations/README-zh_Hant.md
 
 Export Complete: docs/llm/dump.txt
+
+real	0m3.615s
+user	0m1.900s
+sys	0m2.470s
+On branch main
+Your branch and 'origin/main' have diverged,
+and have 60 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   docs/llm/dump.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+real	0m0.022s
+user	0m0.013s
+sys	0m0.008s
+warning: in the working copy of 'docs/llm/dump.txt', CRLF will be replaced by LF the next time Git touches it
+
+real	0m0.040s
+user	0m0.030s
+sys	0m0.009s
+On branch main
+Your branch and 'origin/main' have diverged,
+and have 60 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   docs/llm/dump.txt
+
+
+real	0m0.022s
+user	0m0.014s
+sys	0m0.007s
+[main aee35406] run dump
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+real	0m0.039s
+user	0m0.020s
+sys	0m0.019s
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (5/5), 497 bytes | 497.00 KiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To github.com:kusl/seal.git
+   eeb679c1..aee35406  main -> main
+
+real	0m1.668s
+user	0m0.028s
+sys	0m0.015s
+kushal@fedora:~/src/kotlin/Seal$ git switch --create kus-2026-09-01
+Switched to a new branch 'kus-2026-09-01'
+kushal@fedora:~/src/kotlin/Seal$ time git pull --rebase origin main
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
+
+real	0m0.019s
+user	0m0.012s
+sys	0m0.007s
+kushal@fedora:~/src/kotlin/Seal$ time git pull --rebase origin main
+From https://github.com/JunkFood02/Seal
+ * branch              main       -> FETCH_HEAD
+Auto-merging README.md
+CONFLICT (content): Merge conflict in README.md
+error: could not apply 51df1ff3... run dump
+hint: Resolve all conflicts manually, mark them as resolved with
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+hint: You can instead skip this commit: run "git rebase --skip".
+hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+Could not apply 51df1ff3... # run dump
+
+real	0m1.416s
+user	0m0.704s
+sys	0m0.231s
+kushal@fedora:~/src/kotlin/Seal$ git switch main
+Switched to branch 'main'
+Your branch and 'origin/main' have diverged,
+and have 61 and 3 different commits each, respectively.
+  (use "git pull" if you want to integrate the remote branch with yours)
+kushal@fedora:~/src/kotlin/Seal$ time git pull --rebase origin main
+From https://github.com/JunkFood02/Seal
+ * branch              main       -> FETCH_HEAD
+Auto-merging README.md
+CONFLICT (content): Merge conflict in README.md
+error: could not apply 51df1ff3... run dump
+hint: Resolve all conflicts manually, mark them as resolved with
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+hint: You can instead skip this commit: run "git rebase --skip".
+hint: To abort and get back to the state before "git rebase", run "git rebase --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+Could not apply 51df1ff3... # run dump
+
+real	0m1.081s
+user	0m0.600s
+sys	0m0.238s
+kushal@fedora:~/src/kotlin/Seal$ 
